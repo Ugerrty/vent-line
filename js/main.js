@@ -183,6 +183,9 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
     }
     body.hidden = false;
     finalEl.hidden = true;
+    // короткий лок: защита от двойного клика по совпадающим координатам кнопок
+    optionsEl.style.pointerEvents = 'none';
+    setTimeout(() => { optionsEl.style.pointerEvents = ''; }, 380);
     label.textContent = `Шаг ${step + 1} из ${QUIZ.length}`;
     bar.style.transform = `scaleX(${(step + 1) / QUIZ.length * 0.9})`;
     qEl.textContent = QUIZ[step].q;

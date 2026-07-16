@@ -516,7 +516,7 @@ function init() {
 
   let lastP = 0; // текущий прогресс сцены монтажа (обновляет setStep)
   function updateAir(timeSec) {
-    const inWin = lastP > 0.45 && lastP < 0.66;
+    const inWin = hasMesh && lastP > 0.45 && lastP < 0.66;
     const ramp = inWin
       ? Math.min((lastP - 0.45) / 0.05, 1) * Math.min((0.66 - lastP) / 0.05, 1)
       : 0;
@@ -555,6 +555,7 @@ function init() {
   scene.add(heroShadow);
 
   let modelReady = false;
+  let hasMesh = false; // модель реально в сцене (не сработал фолбэк без решётки)
 
   /* ── позы ─────────────────────────────────────────────── */
   function isNarrow() { return camera.aspect < 0.95; }
@@ -619,6 +620,7 @@ function init() {
     mesh.quaternion.setFromRotationMatrix(m4);
     floatGroup.add(mesh);
     modelReady = true;
+    hasMesh = true;
 
     const atTop = (window.scrollY || 0) < window.innerHeight * 0.4;
     applyPose(heroPose());
@@ -807,8 +809,8 @@ function init() {
     floatGroup.rotation.z = Math.sin(t * 0.5) * 0.012 * heroBlend;
 
     // тень под моделью в hero: следует за ней, дышит вместе с парением
-    heroShadow.material.opacity = heroBlend * 0.3;
-    if (heroBlend > 0.02) {
+    heroShadow.material.opacity = hasMesh ? heroBlend * 0.3 : 0;
+    if (hasMesh && heroBlend > 0.02) {
       heroShadow.position.set(
         scrollGroup.position.x - 2,
         scrollGroup.position.y - 12 + floatGroup.position.y * 0.3,
