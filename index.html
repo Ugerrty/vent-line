@@ -70,6 +70,7 @@ setTimeout(function () {
       <button class="burger" id="burger" type="button" aria-label="Открыть меню" aria-expanded="false"><span></span><span></span></button>
     </div>
   </div>
+  <span class="header__progress" id="header-progress" aria-hidden="true"></span>
 </header>
 
 <!-- ══════════ MOBILE MENU ══════════ -->
@@ -374,6 +375,37 @@ setTimeout(function () {
         <p>Возвращаем подбор, расчёт и техническую документацию — бесплатно.</p>
       </li>
     </ol>
+  </div>
+</section>
+
+<!-- ══════════ QUIZ ══════════ -->
+<section class="section quiz" id="quiz">
+  <div class="container">
+    <div class="section__head" data-reveal>
+      <p class="eyebrow">Подбор онлайн</p>
+      <h2 class="section__title">Соберите заявку<br>за четыре клика</h2>
+      <p class="section__sub">Ответьте на четыре вопроса — вернём подбор, расчёт и КП в течение рабочего дня.</p>
+    </div>
+    <div class="quiz__card" data-reveal>
+      <div class="quiz__top">
+        <span class="quiz__label" id="quiz-label">Шаг 1 из 4</span>
+        <span class="quiz__bar"><i id="quiz-bar"></i></span>
+      </div>
+      <div class="quiz__body" id="quiz-body">
+        <h3 id="quiz-q">Какая система в проекте?</h3>
+        <div class="quiz__options" id="quiz-options"></div>
+      </div>
+      <div class="quiz__final" id="quiz-final" hidden>
+        <h3>Заявка готова</h3>
+        <p class="quiz__summary" id="quiz-summary"></p>
+        <div class="quiz__actions">
+          <a class="btn btn--solid" id="quiz-send" href="#">Отправить на расчёт</a>
+          <button class="btn btn--ghost" type="button" id="quiz-reset">Заполнить заново</button>
+        </div>
+        <p class="quiz__note">Откроется письмо на info@vent-line.ru — приложите чертёж или план, если есть.</p>
+      </div>
+      <button class="quiz__back" id="quiz-back" type="button" hidden>← Назад</button>
+    </div>
   </div>
 </section>
 

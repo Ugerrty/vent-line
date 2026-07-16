@@ -469,6 +469,75 @@ function init() {
     dustMat.opacity = Math.sin(Math.PI * t) * 0.75;
   }
 
+  /* ── потоки воздуха из щелей (финишный этап) ─────────── */
+  function makeStreakSprite() {
+    const c = document.createElement('canvas');
+    c.width = 32; c.height = 64;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 0, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,0)');
+    grad.addColorStop(0.35, 'rgba(255,255,255,0.85)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.save();
+    g.translate(16, 0);
+    g.scale(0.12, 1); // узкая вертикальная струйка
+    g.translate(-16, 0);
+    g.fillRect(0, 0, 32, 64);
+    g.restore();
+    return new THREE.CanvasTexture(c);
+  }
+  // координаты — в системе floatGroup (миллиметры модели): щели на ±35 мм
+  const AIR_N = 140;
+  const airSeed = [];
+  const airPos = new Float32Array(AIR_N * 3);
+  for (let i = 0; i < AIR_N; i++) {
+    airSeed.push({
+      x: (Math.random() - 0.5) * 470,
+      row: i % 2 ? 35 : -35,
+      phase: Math.random(),
+      speed: 0.32 + Math.random() * 0.4,
+      drift: (Math.random() - 0.5) * 34
+    });
+    airPos[i * 3 + 2] = 34;
+  }
+  const airGeo = new THREE.BufferGeometry();
+  airGeo.setAttribute('position', new THREE.BufferAttribute(airPos, 3));
+  const airMat = new THREE.PointsMaterial({
+    map: makeStreakSprite(),
+    size: 7,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    color: 0xf2f4f6
+  });
+  const air = new THREE.Points(airGeo, airMat);
+  air.visible = false; // добавляется в floatGroup ниже, после его создания
+
+  let lastP = 0; // текущий прогресс сцены монтажа (обновляет setStep)
+  function updateAir(timeSec) {
+    const inWin = lastP > 0.45 && lastP < 0.66;
+    const ramp = inWin
+      ? Math.min((lastP - 0.45) / 0.05, 1) * Math.min((0.66 - lastP) / 0.05, 1)
+      : 0;
+    if (ramp <= 0) {
+      air.visible = false;
+      airMat.opacity = 0;
+      return;
+    }
+    air.visible = true;
+    airMat.opacity = 0.3 * ramp;
+    const a = airGeo.attributes.position.array;
+    for (let i = 0; i < AIR_N; i++) {
+      const s = airSeed[i];
+      const life = (timeSec * s.speed + s.phase) % 1;
+      a[i * 3] = s.x + s.drift * life;
+      a[i * 3 + 1] = s.row - 12 - life * 100;
+      a[i * 3 + 2] = 34 + life * 30;
+    }
+    airGeo.attributes.position.needsUpdate = true;
+  }
+
   /* ── решётка (STL) ───────────────────────────────────── */
   const material = new THREE.MeshMatcapMaterial({ matcap: makeMatcap(), color: 0xffffff });
 
@@ -476,6 +545,14 @@ function init() {
   const floatGroup = new THREE.Group();  // лёгкое парение + параллакс мыши
   scrollGroup.add(floatGroup);
   scene.add(scrollGroup);
+  floatGroup.add(air);
+
+  // мягкая тень под моделью в hero — «заземляет» продукт
+  const heroShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(72, 26),
+    new THREE.MeshBasicMaterial({ map: makeShadowTex(), transparent: true, opacity: 0, depthWrite: false })
+  );
+  scene.add(heroShadow);
 
   let modelReady = false;
 
@@ -494,6 +571,7 @@ function init() {
     seatPose.py = SEAT.y * NARROW_K;
     seatPose.s = 0.155 * NARROW_K;
     dustMat.size = 3.2 * NARROW_K;
+    airMat.size = 7 * NARROW_K;
   }
   applyNarrow();
   const entryPose = { px: 52, py: -46, pz: -4, rx: -0.6, ry: -1.5, rz: 0.4, s: 0.1 };
@@ -567,12 +645,31 @@ function init() {
     buildScroll();
   });
 
-  /* ── параллакс мыши (только в hero) ──────────────────── */
+  /* ── параллакс мыши + drag-вращение (только в hero) ──── */
   let mx = 0, my = 0, heroBlend = 1;
+  let dragging = false, dragY = 0, dragLastX = 0;
   window.addEventListener('pointermove', e => {
     mx = (e.clientX / window.innerWidth - 0.5) * 2;
     my = (e.clientY / window.innerHeight - 0.5) * 2;
+    if (dragging) {
+      dragY = THREE.MathUtils.clamp(dragY + (e.clientX - dragLastX) * 0.005, -0.9, 0.9);
+      dragLastX = e.clientX;
+    }
   }, { passive: true });
+  window.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    if ((window.scrollY || 0) > window.innerHeight * 0.7) return; // только в hero
+    if (e.target.closest('a, button, input, select, textarea')) return;
+    dragging = true;
+    dragLastX = e.clientX;
+    document.documentElement.classList.add('is-dragging');
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
+    window.addEventListener(ev, () => {
+      if (!dragging) return;
+      dragging = false;
+      document.documentElement.classList.remove('is-dragging');
+    }));
 
   /* ── scroll-хореография ──────────────────────────────── */
   const merge = { canvas: 1, beam: 0, reveal: 0, photoScale: 1.12 };
@@ -651,9 +748,13 @@ function init() {
 
   let lastStep = 0;
   function setStep(p) {
+    lastP = p;
     const idx = p < 0.22 ? 0 : p < 0.44 ? 1 : p < 0.58 ? 2 : 3;
     if (idx !== lastStep) {
-      stepEls.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+      stepEls.forEach((el, i) => {
+        el.classList.toggle('is-active', i === idx);
+        el.classList.toggle('is-done', i < idx);
+      });
       lastStep = idx;
     }
     heroBlend = THREE.MathUtils.clamp(1 - p * 6, 0, 1);
@@ -683,7 +784,7 @@ function init() {
 
   /* ── рендер-цикл ─────────────────────────────────────── */
   // прозрачные полноэкранные слои выключаем — иначе лишний overdraw на слабом GPU
-  const cullable = [concrete, drywall, paint, cavity, contactShadow];
+  const cullable = [concrete, drywall, paint, cavity, contactShadow, heroShadow];
   function cullLayers() {
     for (const m of cullable) m.visible = m.material.opacity > 0.004;
   }
@@ -698,12 +799,26 @@ function init() {
     cullLayers();
 
     const t = clock.getElapsedTime();
-    // лёгкое парение + параллакс мыши, гаснущие при входе в сцену монтажа
+    // лёгкое парение + параллакс мыши + drag-вращение, гаснущие в сцене монтажа
+    if (!dragging) dragY *= 0.95; // плавный возврат после отпускания
     floatGroup.position.y = Math.sin(t * 0.8) * 1.1 * heroBlend;
     floatGroup.rotation.x += ((my * 0.05 * heroBlend) - floatGroup.rotation.x) * 0.06;
-    floatGroup.rotation.y += ((mx * 0.09 * heroBlend) - floatGroup.rotation.y) * 0.06;
+    floatGroup.rotation.y += (((mx * 0.09 + dragY) * heroBlend) - floatGroup.rotation.y) * 0.08;
     floatGroup.rotation.z = Math.sin(t * 0.5) * 0.012 * heroBlend;
 
+    // тень под моделью в hero: следует за ней, дышит вместе с парением
+    heroShadow.material.opacity = heroBlend * 0.3;
+    if (heroBlend > 0.02) {
+      heroShadow.position.set(
+        scrollGroup.position.x - 2,
+        scrollGroup.position.y - 12 + floatGroup.position.y * 0.3,
+        scrollGroup.position.z - 8
+      );
+      const k = scrollGroup.scale.x / 0.115;
+      heroShadow.scale.setScalar(k * (1 - floatGroup.position.y * 0.03));
+    }
+
+    updateAir(t);
     renderer.render(scene, camera);
   }
   tick();
@@ -734,6 +849,8 @@ function init() {
       if (poseOverride) applyPose(poseOverride);
       applyMergeStyles();
       cullLayers();
+      heroShadow.material.opacity = 0; // в снапшотах тень hero не участвует
+      updateAir(3.7); // детерминированный кадр потоков воздуха
       renderer.render(scene, camera);
       const w = 760;
       const h = Math.round(w * canvas.height / canvas.width);
