@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
    VENT LINE — 3D-сцена (Three.js, matcap, без источников света)
    Одна fixed-canvas на hero и сцену монтажа:
-   появление модели → падение при скролле → посадка в бетон →
-   отделка → чистовой финиш → «фотовспышка» и слияние
-   с фотографией готового объекта.
+   появление модели → падение с кувырком → посадка в бетон
+   (пыль, контактная тень) → отделка → чистовой финиш →
+   светящаяся щель раскрывает фотографию готового объекта.
    ═══════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
@@ -26,8 +26,7 @@ function init() {
 
   const montageEl = document.getElementById('montage');
   const photoEl = document.getElementById('montage-photo');
-  const flashEl = document.getElementById('montage-flash');
-  const noteEl = document.getElementById('montage-note');
+  const beamEl = document.getElementById('montage-beam');
   const finalEl = document.getElementById('montage-final');
   const stepEls = Array.from(document.querySelectorAll('#montage-steps li'));
 
@@ -40,66 +39,43 @@ function init() {
   const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.1, 500);
   camera.position.set(0, 0, 120);
 
-  /* ── matcap «анодированный алюминий» ─────────────────── */
+  /* ── matcap «чёрная порошковая окраска по металлу» ───── */
+  // матовая краска: мягкий широкий свет, сатиновый отлив, никаких хромовых полос
   function makeMatcap() {
     const S = 512;
     const c = document.createElement('canvas');
     c.width = c.height = S;
     const g = c.getContext('2d');
 
-    // тёмная металлическая база с холодным отливом
-    const base = g.createRadialGradient(S * 0.42, S * 0.38, S * 0.05, S * 0.5, S * 0.5, S * 0.62);
-    base.addColorStop(0, '#7b7e85');
-    base.addColorStop(0.35, '#50535a');
-    base.addColorStop(0.7, '#303236');
-    base.addColorStop(1, '#131315');
+    const base = g.createRadialGradient(S * 0.42, S * 0.36, S * 0.04, S * 0.5, S * 0.5, S * 0.64);
+    base.addColorStop(0, '#48494d');
+    base.addColorStop(0.38, '#2e2f32');
+    base.addColorStop(0.72, '#1c1d1f');
+    base.addColorStop(1, '#0e0e0f');
     g.fillStyle = base;
     g.fillRect(0, 0, S, S);
 
-    // ключевой студийный блик (верх)
-    const key = g.createRadialGradient(S * 0.36, S * 0.22, 4, S * 0.36, S * 0.22, S * 0.3);
-    key.addColorStop(0, 'rgba(255,255,255,0.95)');
-    key.addColorStop(0.18, 'rgba(255,255,255,0.55)');
-    key.addColorStop(0.5, 'rgba(230,235,245,0.12)');
+    // широкий мягкий ключевой свет — как на матовой краске
+    const key = g.createRadialGradient(S * 0.35, S * 0.24, S * 0.03, S * 0.35, S * 0.24, S * 0.5);
+    key.addColorStop(0, 'rgba(255,255,255,0.34)');
+    key.addColorStop(0.4, 'rgba(255,255,255,0.14)');
     key.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = key;
     g.fillRect(0, 0, S, S);
 
-    // узкая горизонтальная «полоса софтбокса»
-    const strip = g.createLinearGradient(0, S * 0.30, 0, S * 0.45);
-    strip.addColorStop(0, 'rgba(255,255,255,0)');
-    strip.addColorStop(0.5, 'rgba(240,244,250,0.38)');
-    strip.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = strip;
-    g.fillRect(0, S * 0.30, S, S * 0.15);
+    // едва заметный сатиновый отлив сверху
+    const sheen = g.createLinearGradient(0, 0, 0, S * 0.55);
+    sheen.addColorStop(0, 'rgba(255,255,255,0.08)');
+    sheen.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = sheen;
+    g.fillRect(0, 0, S, S * 0.55);
 
-    // нижний тёплый отражённый свет
-    const bounce = g.createRadialGradient(S * 0.62, S * 0.86, 6, S * 0.62, S * 0.86, S * 0.34);
-    bounce.addColorStop(0, 'rgba(214,200,178,0.30)');
-    bounce.addColorStop(1, 'rgba(214,200,178,0)');
+    // тёплый отражённый свет снизу, очень слабый
+    const bounce = g.createRadialGradient(S * 0.6, S * 0.88, 8, S * 0.6, S * 0.88, S * 0.36);
+    bounce.addColorStop(0, 'rgba(205,196,182,0.10)');
+    bounce.addColorStop(1, 'rgba(205,196,182,0)');
     g.fillStyle = bounce;
     g.fillRect(0, 0, S, S);
-
-    // резкая грань между светом и тенью (металличность)
-    const edge = g.createLinearGradient(0, S * 0.52, 0, S * 0.60);
-    edge.addColorStop(0, 'rgba(0,0,0,0)');
-    edge.addColorStop(0.5, 'rgba(0,0,0,0.35)');
-    edge.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = edge;
-    g.fillRect(0, S * 0.52, S, S * 0.08);
-
-    // анизотропные вертикальные штрихи (брашированный профиль)
-    g.globalAlpha = 0.05;
-    for (let i = 0; i < 90; i++) {
-      const x = Math.random() * S;
-      g.strokeStyle = Math.random() > 0.5 ? '#ffffff' : '#000000';
-      g.lineWidth = 0.8 + Math.random() * 1.4;
-      g.beginPath();
-      g.moveTo(x, 0);
-      g.lineTo(x + (Math.random() - 0.5) * 18, S);
-      g.stroke();
-    }
-    g.globalAlpha = 1;
 
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
@@ -131,96 +107,149 @@ function init() {
     }
   }
 
-  // ЭТАП 0: бетон — опалубочные щиты, стяжки, подтёки, разметка проёма
+  // многооктавный value-noise — основа фактуры бетона
+  function makeNoiseCanvas(size) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d');
+    const img = g.createImageData(size, size);
+    const octs = [
+      { n: 7, amp: 0.42 },
+      { n: 18, amp: 0.28 },
+      { n: 52, amp: 0.18 },
+      { n: 140, amp: 0.12 }
+    ].map(o => {
+      const a = new Float32Array((o.n + 2) * (o.n + 2));
+      for (let i = 0; i < a.length; i++) a[i] = Math.random();
+      return { n: o.n, amp: o.amp, a };
+    });
+    const sm = t => t * t * (3 - 2 * t);
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        let v = 0;
+        for (const o of octs) {
+          const gx = x / size * o.n, gy = y / size * o.n;
+          const x0 = gx | 0, y0 = gy | 0;
+          const fx = sm(gx - x0), fy = sm(gy - y0);
+          const w = o.n + 2;
+          const a = o.a[y0 * w + x0], b = o.a[y0 * w + x0 + 1];
+          const d = o.a[(y0 + 1) * w + x0], e = o.a[(y0 + 1) * w + x0 + 1];
+          const top = a + (b - a) * fx;
+          const bot = d + (e - d) * fx;
+          v += (top + (bot - top) * fy) * o.amp;
+        }
+        // бетонная гамма с лёгким холодным подтоном
+        const tone = 150 + v * 42;
+        const i4 = (y * size + x) * 4;
+        img.data[i4] = tone;
+        img.data[i4 + 1] = tone;
+        img.data[i4 + 2] = tone - 3;
+        img.data[i4 + 3] = 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    return c;
+  }
+
+  // ЭТАП 0: бетон — монолит с опалубочными щитами, стяжками, подтёками
   function makeConcrete() {
     const c = document.createElement('canvas');
     c.width = c.height = TEX;
     const g = c.getContext('2d');
-    g.fillStyle = '#adaba6';
-    g.fillRect(0, 0, TEX, TEX);
 
-    // крупные неровности тона
-    for (let i = 0; i < 40; i++) {
-      const x = Math.random() * TEX, y = Math.random() * TEX;
-      const r = 80 + Math.random() * 230;
-      const grad = g.createRadialGradient(x, y, 0, x, y, r);
-      const tone = Math.random() > 0.5 ? '158,156,150' : '184,182,176';
-      grad.addColorStop(0, `rgba(${tone},${0.16 + Math.random() * 0.2})`);
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = grad;
-      g.fillRect(x - r, y - r, r * 2, r * 2);
+    // фактура: noise 512 растягиваем до 1024 — мягкое сглаживание бесплатно
+    g.drawImage(makeNoiseCanvas(512), 0, 0, TEX, TEX);
+
+    const seamsX = [212, 512, 812];
+    const seamsY = [340, 680];
+
+    // лёгкая разнотонность опалубочных щитов
+    const panelsX = [0, ...seamsX, TEX];
+    const panelsY = [0, ...seamsY, TEX];
+    for (let i = 0; i < panelsX.length - 1; i++) {
+      for (let j = 0; j < panelsY.length - 1; j++) {
+        const shade = (Math.random() - 0.5) * 0.09;
+        g.fillStyle = shade > 0
+          ? `rgba(255,255,252,${shade})`
+          : `rgba(38,38,36,${-shade})`;
+        g.fillRect(panelsX[i], panelsY[j], panelsX[i + 1] - panelsX[i], panelsY[j + 1] - panelsY[j]);
+      }
     }
 
-    // вертикальные подтёки
-    for (let i = 0; i < 26; i++) {
-      const x = Math.random() * TEX, y = Math.random() * TEX * 0.7;
-      const len = 60 + Math.random() * 240, w = 6 + Math.random() * 26;
+    // вертикальные подтёки — в основном от швов
+    for (let i = 0; i < 14; i++) {
+      const x = Math.random() > 0.5
+        ? seamsX[(Math.random() * 3) | 0] + (Math.random() - 0.5) * 30
+        : Math.random() * TEX;
+      const y = Math.random() * TEX * 0.6;
+      const len = 90 + Math.random() * 280, w = 7 + Math.random() * 22;
       const grad = g.createLinearGradient(0, y, 0, y + len);
-      grad.addColorStop(0, `rgba(120,118,112,${0.10 + Math.random() * 0.10})`);
-      grad.addColorStop(1, 'rgba(120,118,112,0)');
+      grad.addColorStop(0, `rgba(112,110,104,${0.06 + Math.random() * 0.08})`);
+      grad.addColorStop(1, 'rgba(112,110,104,0)');
       g.fillStyle = grad;
       g.fillRect(x, y, w, len);
     }
 
-    noiseSpeckle(g, 3200, 0.20, true);
-    noiseSpeckle(g, 1600, 0.14, false);
+    // швы опалубки: тёмная линия + светлая фаска
+    seamsX.forEach(x => {
+      g.fillStyle = 'rgba(56,56,52,0.5)';
+      g.fillRect(x - 1, 0, 2.5, TEX);
+      g.fillStyle = 'rgba(255,255,252,0.16)';
+      g.fillRect(x + 1.5, 0, 1.5, TEX);
+    });
+    seamsY.forEach(y => {
+      g.fillStyle = 'rgba(56,56,52,0.4)';
+      g.fillRect(0, y - 1, TEX, 2.5);
+      g.fillStyle = 'rgba(255,255,252,0.14)';
+      g.fillRect(0, y + 1.5, TEX, 1.5);
+    });
 
-    // сетка опалубочных щитов
-    g.strokeStyle = 'rgba(74,74,70,0.30)';
-    g.lineWidth = 2.5;
-    [212, 512, 812].forEach(x => { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, TEX); g.stroke(); });
-    g.strokeStyle = 'rgba(74,74,70,0.22)';
-    [340, 680].forEach(y => { g.beginPath(); g.moveTo(0, y); g.lineTo(TEX, y); g.stroke(); });
-
-    // отверстия стяжек на пересечениях
-    [212, 512, 812].forEach(x => [340, 680].forEach(y => {
-      const grad = g.createRadialGradient(x, y, 1, x, y, 12);
-      grad.addColorStop(0, 'rgba(52,52,48,0.85)');
-      grad.addColorStop(0.6, 'rgba(52,52,48,0.35)');
-      grad.addColorStop(1, 'rgba(52,52,48,0)');
-      g.fillStyle = grad;
-      g.beginPath(); g.arc(x, y, 12, 0, Math.PI * 2); g.fill();
+    // отверстия стяжек: заглублённый конус + блик по нижней кромке
+    seamsX.forEach(x => seamsY.forEach(y => {
+      const hole = g.createRadialGradient(x, y - 1.5, 1, x, y, 13);
+      hole.addColorStop(0, 'rgba(30,30,28,0.9)');
+      hole.addColorStop(0.45, 'rgba(52,52,48,0.55)');
+      hole.addColorStop(1, 'rgba(52,52,48,0)');
+      g.fillStyle = hole;
+      g.beginPath(); g.arc(x, y, 13, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(255,255,252,0.28)';
+      g.lineWidth = 1.6;
+      g.beginPath(); g.arc(x, y + 1, 7.5, Math.PI * 0.15, Math.PI * 0.85); g.stroke();
     }));
 
-    // тонкие трещины
-    g.strokeStyle = 'rgba(80,80,76,0.35)';
+    // поры и мелкие раковины
+    noiseSpeckle(g, 2400, 0.16, true);
+    noiseSpeckle(g, 700, 0.1, false);
+
+    // волосяные трещины
+    g.strokeStyle = 'rgba(72,72,68,0.28)';
     g.lineWidth = 1;
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) {
       let x = Math.random() * TEX, y = Math.random() * TEX;
       g.beginPath(); g.moveTo(x, y);
-      for (let s = 0; s < 6; s++) {
-        x += (Math.random() - 0.5) * 90;
-        y += Math.random() * 60;
+      for (let s = 0; s < 7; s++) {
+        x += (Math.random() - 0.5) * 70;
+        y += Math.random() * 55;
         g.lineTo(x, y);
       }
       g.stroke();
     }
 
-    // меловая разметка проёма под решётку
+    // лёгкое затемнение к краям — глубина кадра
+    const vig = g.createRadialGradient(TEX / 2, TEX / 2, TEX * 0.35, TEX / 2, TEX / 2, TEX * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(28,28,26,0.14)');
+    g.fillStyle = vig;
+    g.fillRect(0, 0, TEX, TEX);
+
+    // тонкая монтажная разметка проёма — только линии, без подписей
     const rx = u(SEAT.x - GR_W / 2 - 3), ry = v(SEAT.y + GR_H / 2 + 3);
     const rw = uw(GR_W + 6), rh = vh(GR_H + 6);
-    g.strokeStyle = 'rgba(250,250,247,0.75)';
-    g.lineWidth = 2.5;
-    g.setLineDash([16, 12]);
+    g.strokeStyle = 'rgba(250,250,247,0.55)';
+    g.lineWidth = 2;
+    g.setLineDash([14, 11]);
     g.strokeRect(rx, ry, rw, rh);
     g.setLineDash([]);
-    // угловые метки
-    g.lineWidth = 3.5;
-    const L = 26;
-    [[rx, ry], [rx + rw, ry], [rx, ry + rh], [rx + rw, ry + rh]].forEach(([px, py], i) => {
-      const sx = i % 2 === 0 ? 1 : -1;
-      const sy = i < 2 ? 1 : -1;
-      g.beginPath();
-      g.moveTo(px - sx * 8, py);
-      g.lineTo(px + sx * L, py);
-      g.moveTo(px, py - sy * 8);
-      g.lineTo(px, py + sy * L);
-      g.stroke();
-    });
-    // подпись оси
-    g.fillStyle = 'rgba(250,250,247,0.65)';
-    g.font = '26px monospace';
-    g.fillText('ось В-2 · проём 2-RM-30', rx, ry - 18);
 
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
@@ -373,6 +402,73 @@ function init() {
   contactShadow.position.set(SEAT.x, SEAT.y - 2, PLANE_Z + 0.35);
   stage.add(contactShadow);
 
+  /* ── облачко пыли при посадке в проём ────────────────── */
+  function makeDustSprite() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+    grad.addColorStop(0, 'rgba(232,229,222,0.9)');
+    grad.addColorStop(0.5, 'rgba(214,211,203,0.35)');
+    grad.addColorStop(1, 'rgba(214,211,203,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(c);
+  }
+  const DUST_N = 130;
+  const dustSeed = [];
+  const dustPos = new Float32Array(DUST_N * 3);
+  for (let i = 0; i < DUST_N; i++) {
+    // источники: нижняя кромка решётки и её торцы
+    const x0 = Math.random() < 0.7
+      ? (Math.random() - 0.5) * GR_W
+      : (Math.random() > 0.5 ? 1 : -1) * GR_W / 2;
+    const y0 = SEAT.y - GR_H / 2 + Math.random() * 3;
+    dustSeed.push({
+      x0, y0,
+      vx: (Math.random() - 0.5) * 26 + Math.sign(x0) * 4,
+      vy: -(3 + Math.random() * 15),
+      vz: Math.random() * 5
+    });
+    dustPos[i * 3] = x0;
+    dustPos[i * 3 + 1] = y0;
+    dustPos[i * 3 + 2] = PLANE_Z + 1;
+  }
+  const dustGeo = new THREE.BufferGeometry();
+  dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+  const dustMat = new THREE.PointsMaterial({
+    map: makeDustSprite(),
+    size: 3.2,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    color: 0xdedbd3
+  });
+  const dust = new THREE.Points(dustGeo, dustMat);
+  dust.visible = false;
+  stage.add(dust);
+
+  // p — общий прогресс сцены; пыль живёт в окне удара 0.175…0.28
+  function applyDust(p) {
+    const t = THREE.MathUtils.clamp((p - 0.168) / 0.1, 0, 1);
+    if (t <= 0 || t >= 1) {
+      dust.visible = false;
+      dustMat.opacity = 0;
+      return;
+    }
+    dust.visible = true;
+    const e = 1 - (1 - t) * (1 - t);
+    const attr = dustGeo.attributes.position;
+    for (let i = 0; i < DUST_N; i++) {
+      const s = dustSeed[i];
+      attr.array[i * 3] = s.x0 + s.vx * e;
+      attr.array[i * 3 + 1] = s.y0 + s.vy * e - 7 * t * t;
+      attr.array[i * 3 + 2] = PLANE_Z + 1 + s.vz * e;
+    }
+    attr.needsUpdate = true;
+    dustMat.opacity = Math.sin(Math.PI * t) * 0.75;
+  }
+
   /* ── решётка (STL) ───────────────────────────────────── */
   const material = new THREE.MeshMatcapMaterial({ matcap: makeMatcap(), color: 0xffffff });
 
@@ -387,8 +483,8 @@ function init() {
   function isNarrow() { return camera.aspect < 0.95; }
   function heroPose() {
     return isNarrow()
-      ? { px: 0, py: -13, pz: 16, rx: 0.18, ry: -0.45, rz: -0.08, s: 0.055 }
-      : { px: 15, py: -2, pz: 16, rx: 0.15, ry: -0.45, rz: -0.1, s: 0.095 };
+      ? { px: 0, py: -13, pz: 16, rx: 0.2, ry: -0.5, rz: -0.08, s: 0.06 }
+      : { px: 12, py: -2, pz: 18, rx: 0.2, ry: -0.52, rz: -0.14, s: 0.115 };
   }
   const seatPose = { px: SEAT.x, py: SEAT.y, pz: -1.4, rx: 0.02, ry: 0, rz: 0, s: 0.155 };
   function applyNarrow() {
@@ -397,9 +493,10 @@ function init() {
     seatPose.px = SEAT.x * NARROW_K;
     seatPose.py = SEAT.y * NARROW_K;
     seatPose.s = 0.155 * NARROW_K;
+    dustMat.size = 3.2 * NARROW_K;
   }
   applyNarrow();
-  const entryPose = { px: 44, py: -34, pz: 2, rx: 0.9, ry: -1.15, rz: 0.22, s: 0.12 };
+  const entryPose = { px: 52, py: -46, pz: -4, rx: -0.6, ry: -1.5, rz: 0.4, s: 0.1 };
 
   function applyPose(p) {
     scrollGroup.position.set(p.px, p.py, p.pz);
@@ -478,8 +575,9 @@ function init() {
   }, { passive: true });
 
   /* ── scroll-хореография ──────────────────────────────── */
-  const merge = { canvas: 1, flash: 0, photo: 0, photoScale: 1.08 };
+  const merge = { canvas: 1, beam: 0, reveal: 0, photoScale: 1.12 };
   let scrollTl = null;
+  const TWO_PI = Math.PI * 2;
 
   function buildScroll() {
     if (!window.gsap || !window.ScrollTrigger) return;
@@ -504,25 +602,31 @@ function init() {
       defaults: { ease: 'none' }
     });
 
-    // 0–0.12 — решётка «падает» из hero к центру, проявляется бетон с проёмом
+    // 0–0.12 — падение с кувырком: профиль делает оборот и подлетает к проёму
     // fromTo с функциональными значениями: старты всегда — поза hero, не «подлётная»
     tl.fromTo(scrollGroup.position,
       { x: () => heroPose().px, y: () => heroPose().py, z: () => heroPose().pz },
-      { x: () => seatPose.px, y: () => seatPose.py + 15 * NARROW_K, z: seatPose.pz + 11, duration: 12, immediateRender: false }, 0);
+      { x: () => seatPose.px, y: () => seatPose.py + 16 * NARROW_K, z: seatPose.pz + 14, duration: 12, immediateRender: false }, 0);
     tl.fromTo(scrollGroup.rotation,
       { x: () => heroPose().rx, y: () => heroPose().ry, z: () => heroPose().rz },
-      { x: seatPose.rx + 0.3, y: 0, z: 0, duration: 12, immediateRender: false }, 0);
+      { x: TWO_PI + 0.34, y: 0.12, z: 0.05, duration: 12, ease: 'power1.in', immediateRender: false }, 0);
     tl.fromTo(scrollGroup.scale,
       { x: () => heroPose().s, y: () => heroPose().s, z: () => heroPose().s },
-      { x: () => 0.142 * NARROW_K, y: () => 0.142 * NARROW_K, z: () => 0.142 * NARROW_K, duration: 12, immediateRender: false }, 0);
+      { x: () => 0.148 * NARROW_K, y: () => 0.148 * NARROW_K, z: () => 0.148 * NARROW_K, duration: 12, immediateRender: false }, 0);
     tl.to(concrete.material, { opacity: 1, duration: 10 }, 2);
     tl.to(cavity.material, { opacity: 0.95, duration: 6 }, 5);
 
-    // 0.12–0.20 — посадка в проём
-    tl.to(scrollGroup.position, { y: () => seatPose.py, z: seatPose.pz, duration: 8, ease: 'power2.out' }, 12);
-    tl.to(scrollGroup.rotation, { x: seatPose.rx, duration: 8, ease: 'power2.out' }, 12);
-    tl.to(scrollGroup.scale, { x: () => seatPose.s, y: () => seatPose.s, z: () => seatPose.s, duration: 8 }, 12);
-    tl.to(contactShadow.material, { opacity: 0.6, duration: 6 }, 14);
+    // 0.12–0.18 — ускоряющаяся посадка в проём
+    tl.to(scrollGroup.position, { y: () => seatPose.py, z: seatPose.pz, duration: 6, ease: 'power2.in' }, 12);
+    tl.to(scrollGroup.rotation, { x: TWO_PI + seatPose.rx, y: 0, z: 0, duration: 6, ease: 'power2.in' }, 12);
+    tl.to(scrollGroup.scale, { x: () => seatPose.s, y: () => seatPose.s, z: () => seatPose.s, duration: 6 }, 12);
+
+    // удар: вспышка контактной тени + сплющивание; облачко пыли ведёт setStep
+    tl.to(contactShadow.material, { opacity: 0.4, duration: 4 }, 14);
+    tl.to(contactShadow.material, { opacity: 0.85, duration: 1.6 }, 18);
+    tl.to(contactShadow.material, { opacity: 0.55, duration: 4 }, 20);
+    tl.to(scrollGroup.scale, { y: () => seatPose.s * 0.93, duration: 1.4, ease: 'power1.out' }, 18);
+    tl.to(scrollGroup.scale, { y: () => seatPose.s, duration: 3.2, ease: 'power2.out' }, 19.4);
 
     // 0.24–0.40 — отделка: лист ГКЛ «поднимается» к потолку и закрывает бетон
     drywall.position.y = -12;
@@ -533,42 +637,47 @@ function init() {
     tl.to(paint.material, { opacity: 1, duration: 14 }, 46);
     tl.to(contactShadow.material, { opacity: 0.32, duration: 14 }, 46);
 
-    // 0.62–0.78 — «фотовспышка»: срез на фотографию готового объекта
-    tl.to(merge, { flash: 1, duration: 4, ease: 'power2.in' }, 62);
-    tl.to(merge, { photo: 1, duration: 0.8 }, 65);
-    tl.to(merge, { canvas: 0, duration: 1.2 }, 65.4);
-    tl.to(merge, { flash: 0, duration: 10, ease: 'power2.out' }, 67);
-    tl.to(merge, { photoScale: 1.015, duration: 18 }, 62);
+    // 0.58–0.74 — светящаяся щель раскрывает фотографию готового объекта
+    tl.to(merge, { beam: 1, duration: 3, ease: 'power2.out' }, 58);
+    tl.to(merge, { reveal: 1, duration: 12, ease: 'power2.inOut' }, 62);
+    tl.to(merge, { canvas: 0, duration: 4 }, 67);
+    tl.to(merge, { photoScale: 1.02, duration: 16 }, 62);
 
-    // 0.80–1 — фото плавно «доезжает», финальный оверлей
-    tl.to(merge, { photoScale: 1, duration: 20 }, 80);
+    // 0.78–1 — фото плавно «доезжает», финальный оверлей
+    tl.to(merge, { photoScale: 1, duration: 22 }, 78);
 
     scrollTl = tl;
   }
 
   let lastStep = 0;
   function setStep(p) {
-    const idx = p < 0.22 ? 0 : p < 0.44 ? 1 : p < 0.62 ? 2 : 3;
+    const idx = p < 0.22 ? 0 : p < 0.44 ? 1 : p < 0.58 ? 2 : 3;
     if (idx !== lastStep) {
       stepEls.forEach((el, i) => el.classList.toggle('is-active', i === idx));
       lastStep = idx;
     }
     heroBlend = THREE.MathUtils.clamp(1 - p * 6, 0, 1);
-    montageEl.classList.toggle('is-merged', p > 0.63);
+    montageEl.classList.toggle('is-merged', p > 0.66);
+    applyDust(p);
     if (finalEl) {
       const t = THREE.MathUtils.clamp((p - 0.8) / 0.12, 0, 1);
       finalEl.style.opacity = t;
       finalEl.style.visibility = t > 0.01 ? 'visible' : 'hidden';
     }
-    if (noteEl) noteEl.style.opacity = p > 0.6 ? 0 : 1;
   }
 
   function applyMergeStyles() {
     canvas.style.opacity = merge.canvas;
-    if (flashEl) flashEl.style.opacity = merge.flash;
     if (photoEl) {
-      photoEl.style.opacity = merge.photo;
+      const r = merge.reveal;
+      photoEl.style.opacity = r > 0.001 ? 1 : 0;
+      photoEl.style.clipPath = `inset(${(1 - r) * 50}% 0 ${(1 - r) * 50}% 0)`;
       photoEl.style.transform = `scale(${merge.photoScale})`;
+    }
+    if (beamEl) {
+      // луч гаснет по мере раскрытия щели
+      beamEl.style.opacity = merge.beam * Math.max(0, 1 - merge.reveal * 2.5);
+      beamEl.style.transform = `translateY(-50%) scaleX(${merge.beam})`;
     }
   }
 
