@@ -37,6 +37,23 @@ while ($listener.IsListening) {
   try {
     $path = [System.Uri]::UnescapeDataString($ctx.Request.Url.AbsolutePath)
     if ($path -eq "/") { $path = "/index.html" }
+    # dev-хук: приём снапшотов сцены (POST /__snap?name=xxx, тело — dataURL jpeg)
+    if ($ctx.Request.HttpMethod -eq "POST" -and $path -eq "/__snap") {
+      $name = $ctx.Request.QueryString["name"]
+      if (-not $name) { $name = "snap" }
+      $name = ($name -replace "[^a-zA-Z0-9_\-]", "")
+      $reader = New-Object System.IO.StreamReader($ctx.Request.InputStream, $ctx.Request.ContentEncoding)
+      $body = $reader.ReadToEnd()
+      $b64 = $body -replace "^data:image/\w+;base64,", ""
+      $dir = Join-Path $root "_snaps"
+      if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
+      [System.IO.File]::WriteAllBytes((Join-Path $dir "$name.jpg"), [Convert]::FromBase64String($b64))
+      $ok = [System.Text.Encoding]::UTF8.GetBytes("saved")
+      $ctx.Response.ContentLength64 = $ok.Length
+      $ctx.Response.OutputStream.Write($ok, 0, $ok.Length)
+      try { $ctx.Response.OutputStream.Close() } catch {}
+      continue
+    }
     $file = Join-Path $root ($path.TrimStart("/") -replace "/", "\")
     $full = [System.IO.Path]::GetFullPath($file)
     if ($full.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path $full -PathType Leaf)) {
