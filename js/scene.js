@@ -34,6 +34,7 @@ function init() {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.localClippingEnabled = true; // для «прокатки» краски клип-плоскостью
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.1, 500);
@@ -256,8 +257,8 @@ function init() {
     return t;
   }
 
-  // ЭТАП 1: отделка — листы ГКЛ, швы с лентой, саморезы, вырез под профиль
-  function makeDrywall() {
+  // ЭТАП 1a: чистый лист ГКЛ — стыки и кромка выреза, без шпаклёвки
+  function makeDrywallBoard() {
     const c = document.createElement('canvas');
     c.width = c.height = TEX;
     const g = c.getContext('2d');
@@ -272,35 +273,59 @@ function init() {
     }
     noiseSpeckle(g, 700, 0.07, true);
 
-    const seams = [256, 512, 768];
-    // стыки листов
-    seams.forEach(x => {
-      g.strokeStyle = 'rgba(110,110,106,0.5)';
+    // стыки листов + утоненная кромка (заводская фаска)
+    [256, 512, 768].forEach(x => {
+      g.strokeStyle = 'rgba(110,110,106,0.55)';
       g.lineWidth = 2;
       g.beginPath(); g.moveTo(x, 0); g.lineTo(x, TEX); g.stroke();
+      const bevel = g.createLinearGradient(x - 22, 0, x + 22, 0);
+      bevel.addColorStop(0, 'rgba(120,120,116,0)');
+      bevel.addColorStop(0.5, 'rgba(120,120,116,0.18)');
+      bevel.addColorStop(1, 'rgba(120,120,116,0)');
+      g.fillStyle = bevel;
+      g.fillRect(x - 22, 0, 44, TEX);
     });
-    // зашпаклёванные швы (светлые полосы поверх стыков)
+
+    // вырез под профиль: тёмная кромка реза
+    const rx = u(SEAT.x - GR_W / 2 - 1.2), ry = v(SEAT.y + GR_H / 2 + 1.2);
+    const rw = uw(GR_W + 2.4), rh = vh(GR_H + 2.4);
+    g.strokeStyle = 'rgba(96,96,92,0.7)';
+    g.lineWidth = 2.5;
+    g.strokeRect(rx, ry, rw, rh);
+
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
+  // ЭТАП 1b: шпаклёвка — светлые полосы по швам, саморезы, обход проёма
+  function makeFinishOverlay() {
+    const c = document.createElement('canvas');
+    c.width = c.height = TEX;
+    const g = c.getContext('2d');
+
+    const seams = [256, 512, 768];
     seams.forEach(x => {
-      const band = g.createLinearGradient(x - 34, 0, x + 34, 0);
+      const band = g.createLinearGradient(x - 36, 0, x + 36, 0);
       band.addColorStop(0, 'rgba(233,231,224,0)');
-      band.addColorStop(0.5, 'rgba(233,231,224,0.9)');
+      band.addColorStop(0.5, 'rgba(233,231,224,0.92)');
       band.addColorStop(1, 'rgba(233,231,224,0)');
       g.fillStyle = band;
-      g.fillRect(x - 34, 0, 68, TEX);
+      g.fillRect(x - 36, 0, 72, TEX);
     });
-    // саморезы — точки с притемнением, рядами вдоль швов и по полю
+    // саморезы — зашпаклёванные точки
     const screw = (x, y) => {
-      const grad = g.createRadialGradient(x, y, 0.5, x, y, 6);
-      grad.addColorStop(0, 'rgba(70,70,66,0.8)');
-      grad.addColorStop(0.5, 'rgba(150,148,142,0.5)');
-      grad.addColorStop(1, 'rgba(150,148,142,0)');
+      const grad = g.createRadialGradient(x, y, 0.5, x, y, 7);
+      grad.addColorStop(0, 'rgba(228,226,219,0.95)');
+      grad.addColorStop(0.55, 'rgba(180,178,172,0.5)');
+      grad.addColorStop(1, 'rgba(180,178,172,0)');
       g.fillStyle = grad;
-      g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.fill();
     };
     seams.forEach(x => { for (let y = 60; y < TEX; y += 128) screw(x + (Math.random() - 0.5) * 6, y); });
     [128, 384, 640, 896].forEach(x => { for (let y = 96; y < TEX; y += 190) screw(x + (Math.random() - 0.5) * 10, y); });
 
-    // аккуратный вырез под профиль: кромка + шпаклёвка по периметру
+    // обход проёма шпаклёвкой
     const rx = u(SEAT.x - GR_W / 2 - 1.2), ry = v(SEAT.y + GR_H / 2 + 1.2);
     const rw = uw(GR_W + 2.4), rh = vh(GR_H + 2.4);
     const skim = g.createRadialGradient(rx + rw / 2, ry + rh / 2, Math.min(rw, rh) * 0.3, rx + rw / 2, ry + rh / 2, rw * 0.75);
@@ -308,9 +333,6 @@ function init() {
     skim.addColorStop(1, 'rgba(233,231,224,0)');
     g.fillStyle = skim;
     g.fillRect(rx - rw * 0.3, ry - rh * 1.2, rw * 1.6, rh * 3.4);
-    g.strokeStyle = 'rgba(96,96,92,0.65)';
-    g.lineWidth = 2;
-    g.strokeRect(rx, ry, rw, rh);
 
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
@@ -371,8 +393,21 @@ function init() {
     return m;
   }
   const concrete = makeLayer(makeConcrete(), PLANE_Z - 0.02);
-  const drywall = makeLayer(makeDrywall(), PLANE_Z - 0.01);
+  const drywall = makeLayer(makeDrywallBoard(), PLANE_Z - 0.012);
+  const finish = makeLayer(makeFinishOverlay(), PLANE_Z - 0.006);
   const paint = makeLayer(makePaint(), PLANE_Z);
+
+  // краска «прокатывается» слева направо клип-плоскостью (world-space)
+  paint.material.opacity = 1;
+  const paintClip = new THREE.Plane(new THREE.Vector3(-1, 0, 0), -400);
+  paint.material.clippingPlanes = [paintClip];
+  // «мокрая кромка» валика на границе прокраски
+  const wetEdge = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, PLANE_H),
+    new THREE.MeshBasicMaterial({ color: 0xfff8ec, transparent: true, opacity: 0, depthWrite: false })
+  );
+  wetEdge.position.z = PLANE_Z + 0.05;
+  stage.add(wetEdge);
 
   // тёмная полость, видимая сквозь щели севшей решётки
   function makeCavityTex() {
@@ -380,11 +415,27 @@ function init() {
     c.width = 512; c.height = 160;
     const g = c.getContext('2d');
     const grad = g.createLinearGradient(0, 0, 0, 160);
-    grad.addColorStop(0, '#050505');
-    grad.addColorStop(0.5, '#101010');
-    grad.addColorStop(1, '#060606');
+    grad.addColorStop(0, '#060606');
+    grad.addColorStop(0.5, '#141414');
+    grad.addColorStop(1, '#070707');
     g.fillStyle = grad;
     g.fillRect(0, 0, 512, 160);
+    // внутренние тени по периметру — глубина проёма
+    const edge = (x0, y0, x1, y1) => {
+      const e = g.createLinearGradient(x0, y0, x1, y1);
+      e.addColorStop(0, 'rgba(0,0,0,0.85)');
+      e.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = e;
+      g.fillRect(0, 0, 512, 160);
+    };
+    edge(0, 0, 26, 0); edge(512, 0, 486, 0);
+    edge(0, 0, 0, 20); edge(0, 160, 0, 140);
+    // едва заметный отсвет комнаты на нижней стенке проёма
+    const glow = g.createLinearGradient(0, 160, 0, 130);
+    glow.addColorStop(0, 'rgba(120,116,106,0.18)');
+    glow.addColorStop(1, 'rgba(120,116,106,0)');
+    g.fillStyle = glow;
+    g.fillRect(0, 130, 512, 30);
     return new THREE.CanvasTexture(c);
   }
   const cavity = new THREE.Mesh(
@@ -516,9 +567,9 @@ function init() {
 
   let lastP = 0; // текущий прогресс сцены монтажа (обновляет setStep)
   function updateAir(timeSec) {
-    const inWin = hasMesh && lastP > 0.45 && lastP < 0.66;
+    const inWin = hasMesh && lastP > 0.555 && lastP < 0.68;
     const ramp = inWin
-      ? Math.min((lastP - 0.45) / 0.05, 1) * Math.min((0.66 - lastP) / 0.05, 1)
+      ? Math.min((lastP - 0.555) / 0.04, 1) * Math.min((0.68 - lastP) / 0.05, 1)
       : 0;
     if (ramp <= 0) {
       air.visible = false;
@@ -674,7 +725,10 @@ function init() {
     }));
 
   /* ── scroll-хореография ──────────────────────────────── */
-  const merge = { canvas: 1, beam: 0, reveal: 0, photoScale: 1.12 };
+  const merge = { canvas: 1, beam: 0, reveal: 0, photoScale: 1.12, dim: 0 };
+  const stagesFx = { paint: 0, drift: 0 }; // прокатка краски и dolly-наезд камеры
+  const dimEl = document.getElementById('montage-dim');
+  const railEl = document.getElementById('montage-rail');
   let scrollTl = null;
   const TWO_PI = Math.PI * 2;
 
@@ -720,23 +774,35 @@ function init() {
     tl.to(scrollGroup.rotation, { x: TWO_PI + seatPose.rx, y: 0, z: 0, duration: 6, ease: 'power2.in' }, 12);
     tl.to(scrollGroup.scale, { x: () => seatPose.s, y: () => seatPose.s, z: () => seatPose.s, duration: 6 }, 12);
 
+    // тень «предчувствует» падение: широкая и бледная → сжимается при приближении
+    tl.fromTo(contactShadow.scale,
+      { x: 1.45, y: 1.45, z: 1 },
+      { x: 1, y: 1, duration: 12, immediateRender: false }, 6);
+    tl.fromTo(contactShadow.material,
+      { opacity: 0 },
+      { opacity: 0.42, duration: 12, immediateRender: false }, 6);
     // удар: вспышка контактной тени + сплющивание; облачко пыли ведёт setStep
-    tl.to(contactShadow.material, { opacity: 0.4, duration: 4 }, 14);
     tl.to(contactShadow.material, { opacity: 0.85, duration: 1.6 }, 18);
     tl.to(contactShadow.material, { opacity: 0.55, duration: 4 }, 20);
+    // медленный dolly-наезд камеры от посадки до финиша
+    tl.to(stagesFx, { drift: 1, duration: 42, ease: 'power1.inOut' }, 14);
     tl.to(scrollGroup.scale, { y: () => seatPose.s * 0.93, duration: 1.4, ease: 'power1.out' }, 18);
     tl.to(scrollGroup.scale, { y: () => seatPose.s, duration: 3.2, ease: 'power2.out' }, 19.4);
 
-    // 0.24–0.40 — отделка: лист ГКЛ «поднимается» к потолку и закрывает бетон
+    // 0.24–0.41 — отделка в две фазы: лист ГКЛ прижимается к потолку,
+    // затем шпаклюются швы и появляются зашпаклёванные саморезы
     drywall.position.y = -12;
     tl.to(drywall.material, { opacity: 1, duration: 7 }, 24);
-    tl.to(drywall.position, { y: 0, duration: 14, ease: 'power1.out' }, 24);
+    tl.to(drywall.position, { y: 0, duration: 13, ease: 'back.out(1.2)' }, 24);
+    tl.to(finish.material, { opacity: 1, duration: 8 }, 34);
 
-    // 0.46–0.60 — чистовой финиш: окрашенный потолок (профиль уже в RAL с завода)
-    tl.to(paint.material, { opacity: 1, duration: 14 }, 46);
+    // 0.46–0.60 — чистовой финиш: краска «прокатывается» слева направо
+    tl.to(stagesFx, { paint: 1, duration: 14, ease: 'power1.inOut' }, 46);
     tl.to(contactShadow.material, { opacity: 0.32, duration: 14 }, 46);
 
-    // 0.58–0.74 — светящаяся щель раскрывает фотографию готового объекта
+    // 0.57–0.74 — сцена притемняется, светящаяся щель раскрывает фотографию
+    tl.to(merge, { dim: 0.16, duration: 4 }, 57);
+    tl.to(merge, { dim: 0, duration: 6 }, 65);
     tl.to(merge, { beam: 1, duration: 3, ease: 'power2.out' }, 58);
     tl.to(merge, { reveal: 1, duration: 12, ease: 'power2.inOut' }, 62);
     tl.to(merge, { canvas: 0, duration: 4 }, 67);
@@ -762,6 +828,15 @@ function init() {
     heroBlend = THREE.MathUtils.clamp(1 - p * 6, 0, 1);
     montageEl.classList.toggle('is-merged', p > 0.66);
     applyDust(p);
+    // прогресс-рейка панели шагов
+    if (railEl) railEl.style.height = `${THREE.MathUtils.clamp(p / 0.6, 0, 1) * 100}%`;
+    // dolly-наезд камеры
+    camera.position.z = 120 - 7 * stagesFx.drift;
+    // прокатка краски: клип-плоскость + «мокрая кромка» валика
+    const wc = (-140 + 285 * stagesFx.paint) * NARROW_K;
+    paintClip.constant = wc;
+    wetEdge.position.x = wc / NARROW_K;
+    wetEdge.material.opacity = Math.sin(Math.PI * stagesFx.paint) * 0.55;
     if (finalEl) {
       const t = THREE.MathUtils.clamp((p - 0.8) / 0.12, 0, 1);
       finalEl.style.opacity = t;
@@ -782,11 +857,12 @@ function init() {
       beamEl.style.opacity = merge.beam * Math.max(0, 1 - merge.reveal * 2.5);
       beamEl.style.transform = `translateY(-50%) scaleX(${merge.beam})`;
     }
+    if (dimEl) dimEl.style.opacity = merge.dim;
   }
 
   /* ── рендер-цикл ─────────────────────────────────────── */
   // прозрачные полноэкранные слои выключаем — иначе лишний overdraw на слабом GPU
-  const cullable = [concrete, drywall, paint, cavity, contactShadow, heroShadow];
+  const cullable = [concrete, drywall, finish, paint, cavity, contactShadow, heroShadow, wetEdge];
   function cullLayers() {
     for (const m of cullable) m.visible = m.material.opacity > 0.004;
   }
