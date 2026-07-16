@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vent Line — щелевые вентиляционные решётки скрытого монтажа</title>
-<meta name="description" content="Щелевые решётки Vent Line — вентиляция без визуального шума. Подбор и расчёт за 1 день, производство в Москве от 5 дней, окраска в любой RAL, 25–1500 м³/ч.">
+<meta name="description" content="Щелевые решётки Vent Line — вентиляция без визуального шума. Подбор и расчёт за 1 день, собственное производство от 5 дней, окраска в любой RAL, 25–1500 м³/ч.">
 <meta property="og:title" content="Vent Line — щелевые решётки скрытого монтажа">
-<meta property="og:description" content="Вентиляция без визуального шума. Производство в Москве от 5 дней.">
+<meta property="og:description" content="Вентиляция без визуального шума. Собственное производство, изготовление от 5 дней.">
 <meta property="og:type" content="website">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
   }
 }
@@ -34,6 +34,13 @@
     <span class="preloader__tag">щелевые решётки скрытого монтажа</span>
   </div>
 </div>
+<script>
+/* страховка вне module-графа: прелоадер скрывается даже при зависшем CDN */
+setTimeout(function () {
+  var p = document.getElementById('preloader');
+  if (p) p.classList.add('is-done');
+}, 6000);
+</script>
 
 <!-- ══════════ 3D CANVAS (общий для hero и сцены монтажа) ══════════ -->
 <canvas id="scene-canvas" aria-hidden="true"></canvas>
@@ -86,7 +93,7 @@
 <section class="hero" id="hero">
   <div class="hero__inner">
     <div class="hero__text">
-      <p class="eyebrow" data-reveal>Производство в Москве · с 2011 года</p>
+      <p class="eyebrow" data-reveal>Собственное производство · с 2011 года</p>
       <h1 class="hero__title" data-reveal>Вентиляция<br>без визуального<br>шума</h1>
       <p class="hero__sub" data-reveal>Щелевые решётки скрытого монтажа для потолка, стен и пола.
         Алюминиевый профиль, окраска в любой цвет RAL, пропускная способность от 25 до 1500 м³/ч.</p>
@@ -105,7 +112,7 @@
       <span>2-RM-30 — двухщелевой профиль · щель 30 мм · алюминий</span>
     </div>
     <a class="hero__hint" href="#montage" data-scroll aria-label="Листайте вниз">
-      <span>Листайте — покажем монтаж от бетона до чистовой линии</span>
+      <span>Листайте — покажем монтаж от бетона до чистой линии</span>
       <i></i>
     </a>
   </div>
@@ -289,7 +296,7 @@
         <div class="catalog__row"><h3>S PRO MAX</h3><span class="catalog__price">от 13 500 ₽</span></div>
         <p>Флагманская серия для больших расходов воздуха</p>
       </a>
-      <a class="catalog__card" data-reveal href="https://vent-line.ru/vent-line-ml-c" target="_blank" rel="noopener">
+      <a class="catalog__card" data-reveal href="https://vent-line.ru/katalog" target="_blank" rel="noopener">
         <div class="catalog__media"><img src="assets/render-lnc.jpg" alt="Линейный диффузор Vent Line LN-C" loading="lazy"></div>
         <div class="catalog__row"><h3>LN-C</h3><span class="catalog__price">от 1 800 ₽</span></div>
         <p>Линейный диффузор с ламелями</p>
@@ -301,7 +308,7 @@
       </a>
     </div>
     <div class="catalog__more" data-reveal>
-      <a class="btn btn--ghost" href="https://vent-line.ru/katalog" target="_blank" rel="noopener">Весь модельный ряд — 24 серии</a>
+      <a class="btn btn--ghost" href="https://vent-line.ru/katalog" target="_blank" rel="noopener">Весь модельный ряд — в каталоге</a>
     </div>
   </div>
 </section>

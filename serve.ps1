@@ -30,6 +30,8 @@ $mime = @{
   ".ico"  = "image/x-icon"
   ".woff" = "font/woff"
   ".woff2" = "font/woff2"
+  ".stl"  = "application/octet-stream"
+  ".gz"   = "application/gzip"
 }
 
 while ($listener.IsListening) {

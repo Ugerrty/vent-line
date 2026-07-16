@@ -12,9 +12,10 @@ function hidePreloader() {
   preloaderHidden = true;
   preloader.classList.add('is-done');
 }
-document.addEventListener('scene-ready', () => setTimeout(hidePreloader, 250));
+if (window.__sceneReady) setTimeout(hidePreloader, 250);
+else document.addEventListener('scene-ready', () => setTimeout(hidePreloader, 250));
 window.addEventListener('load', () => setTimeout(hidePreloader, 2600)); // страховка
-setTimeout(hidePreloader, 6000);
+setTimeout(hidePreloader, 6000); // вторая страховка (есть и инлайновая в index.html)
 
 /* ── smooth scroll (Lenis + ScrollTrigger) ─────────────── */
 let lenis = null;
@@ -62,6 +63,7 @@ function closeMenu() {
   burger.classList.remove('is-open');
   burger.setAttribute('aria-expanded', 'false');
   menu.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
   if (lenis) lenis.start();
 }
 burger?.addEventListener('click', () => {
@@ -70,6 +72,7 @@ burger?.addEventListener('click', () => {
   burger.classList.toggle('is-open', open);
   burger.setAttribute('aria-expanded', String(open));
   menu.setAttribute('aria-hidden', String(!open));
+  document.body.style.overflow = open ? 'hidden' : '';
   if (lenis) open ? lenis.stop() : lenis.start();
 });
 

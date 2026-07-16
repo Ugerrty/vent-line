@@ -13,12 +13,17 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const canvas = document.getElementById('scene-canvas');
 
 if (reduced || !canvas || !window.WebGLRenderingContext) {
-  document.dispatchEvent(new CustomEvent('scene-ready'));
+  // асинхронно: main.js (следующий module-скрипт) должен успеть повесить слушатель
+  window.__sceneReady = true;
+  setTimeout(() => document.dispatchEvent(new CustomEvent('scene-ready')), 0);
 } else {
   init();
 }
 
 function init() {
+  // сцена жива — включаем сценарный режим секции монтажа (иначе CSS-фолбэк)
+  document.documentElement.classList.add('has-scene');
+
   const montageEl = document.getElementById('montage');
   const photoEl = document.getElementById('montage-photo');
   const flashEl = document.getElementById('montage-flash');
@@ -323,9 +328,8 @@ function init() {
 
   /* ── слои «потолка» ──────────────────────────────────── */
   // на узких экранах вся сцена монтажа уменьшается, чтобы решётка и проём помещались в кадр
-  const NARROW_K = (window.innerWidth / window.innerHeight) < 0.95 ? 0.42 : 1;
+  let NARROW_K = 1;
   const stage = new THREE.Group();
-  stage.scale.setScalar(NARROW_K);
   scene.add(stage);
 
   function makeLayer(tex, z) {
@@ -386,10 +390,15 @@ function init() {
       ? { px: 0, py: -13, pz: 16, rx: 0.18, ry: -0.45, rz: -0.08, s: 0.055 }
       : { px: 15, py: -2, pz: 16, rx: 0.15, ry: -0.45, rz: -0.1, s: 0.095 };
   }
-  const seatPose = {
-    px: SEAT.x * NARROW_K, py: SEAT.y * NARROW_K, pz: -1.4,
-    rx: 0.02, ry: 0, rz: 0, s: 0.155 * NARROW_K
-  };
+  const seatPose = { px: SEAT.x, py: SEAT.y, pz: -1.4, rx: 0.02, ry: 0, rz: 0, s: 0.155 };
+  function applyNarrow() {
+    NARROW_K = isNarrow() ? 0.42 : 1;
+    stage.scale.setScalar(NARROW_K);
+    seatPose.px = SEAT.x * NARROW_K;
+    seatPose.py = SEAT.y * NARROW_K;
+    seatPose.s = 0.155 * NARROW_K;
+  }
+  applyNarrow();
   const entryPose = { px: 44, py: -34, pz: 2, rx: 0.9, ry: -1.15, rz: 0.22, s: 0.12 };
 
   function applyPose(p) {
@@ -398,8 +407,32 @@ function init() {
     scrollGroup.scale.setScalar(p.s);
   }
 
-  /* ── загрузка STL ────────────────────────────────────── */
-  new STLLoader().load('assets/rm30.stl', geometry => {
+  /* ── загрузка STL (сжатая копия + фолбэк) ────────────── */
+  let entryTweens = [];
+
+  async function loadGeometry() {
+    const loader = new STLLoader();
+    // rm30.stl.gz втрое меньше; распаковка — нативным DecompressionStream
+    if (typeof DecompressionStream === 'function') {
+      try {
+        const res = await fetch('assets/rm30.stl.gz');
+        if (res.ok) {
+          const stream = res.body.pipeThrough(new DecompressionStream('gzip'));
+          const buf = await new Response(stream).arrayBuffer();
+          return loader.parse(buf);
+        }
+      } catch (e) { /* переходим к несжатому файлу */ }
+    }
+    return new Promise((resolve, reject) =>
+      loader.load('assets/rm30.stl', resolve, undefined, reject));
+  }
+
+  function sceneReady() {
+    window.__sceneReady = true;
+    document.dispatchEvent(new CustomEvent('scene-ready'));
+  }
+
+  loadGeometry().then(geometry => {
     geometry.center();
     const mesh = new THREE.Mesh(geometry, material);
     // ориентация: длина (geo Z) → мировой X, лицевая сторона (geo −Y) → к камере (+Z)
@@ -416,21 +449,25 @@ function init() {
     applyPose(heroPose());
     if (atTop && window.gsap) {
       const h = heroPose();
-      gsap.fromTo(scrollGroup.position,
-        { x: entryPose.px, y: entryPose.py, z: entryPose.pz },
-        { x: h.px, y: h.py, z: h.pz, duration: 1.8, ease: 'power3.out', delay: 0.2 });
-      gsap.fromTo(scrollGroup.rotation,
-        { x: entryPose.rx, y: entryPose.ry, z: entryPose.rz },
-        { x: h.rx, y: h.ry, z: h.rz, duration: 1.8, ease: 'power3.out', delay: 0.2 });
-      gsap.fromTo(scrollGroup.scale,
-        { x: entryPose.s, y: entryPose.s, z: entryPose.s },
-        { x: h.s, y: h.s, z: h.s, duration: 1.8, ease: 'power3.out', delay: 0.2 });
+      entryTweens = [
+        gsap.fromTo(scrollGroup.position,
+          { x: entryPose.px, y: entryPose.py, z: entryPose.pz },
+          { x: h.px, y: h.py, z: h.pz, duration: 1.8, ease: 'power3.out', delay: 0.2 }),
+        gsap.fromTo(scrollGroup.rotation,
+          { x: entryPose.rx, y: entryPose.ry, z: entryPose.rz },
+          { x: h.rx, y: h.ry, z: h.rz, duration: 1.8, ease: 'power3.out', delay: 0.2 }),
+        gsap.fromTo(scrollGroup.scale,
+          { x: entryPose.s, y: entryPose.s, z: entryPose.s },
+          { x: h.s, y: h.s, z: h.s, duration: 1.8, ease: 'power3.out', delay: 0.2 })
+      ];
     }
-    document.dispatchEvent(new CustomEvent('scene-ready'));
+    sceneReady();
     buildScroll();
-  }, undefined, () => {
-    // не загрузилось — не блокируем сайт
-    document.dispatchEvent(new CustomEvent('scene-ready'));
+  }).catch(() => {
+    // модель не загрузилась — сцена работает без решётки, сайт не блокируем
+    modelReady = true;
+    sceneReady();
+    buildScroll();
   });
 
   /* ── параллакс мыши (только в hero) ──────────────────── */
@@ -454,23 +491,37 @@ function init() {
         start: 'top bottom',
         end: 'bottom bottom',
         scrub: 0.65,
-        onUpdate: self => setStep(self.progress),
+        onUpdate: self => {
+          // первый же скролл сцены глушит entry-анимацию, чтобы не спорить со scrub
+          if (entryTweens.length && self.progress > 0.001) {
+            entryTweens.forEach(t => t.kill());
+            entryTweens = [];
+          }
+          setStep(self.progress);
+        },
         invalidateOnRefresh: true
       },
       defaults: { ease: 'none' }
     });
 
     // 0–0.12 — решётка «падает» из hero к центру, проявляется бетон с проёмом
-    tl.to(scrollGroup.position, { x: seatPose.px, y: seatPose.py + 15 * NARROW_K, z: seatPose.pz + 11, duration: 12 }, 0);
-    tl.to(scrollGroup.rotation, { x: seatPose.rx + 0.3, y: 0, z: 0, duration: 12 }, 0);
-    tl.to(scrollGroup.scale, { x: 0.142 * NARROW_K, y: 0.142 * NARROW_K, z: 0.142 * NARROW_K, duration: 12 }, 0);
+    // fromTo с функциональными значениями: старты всегда — поза hero, не «подлётная»
+    tl.fromTo(scrollGroup.position,
+      { x: () => heroPose().px, y: () => heroPose().py, z: () => heroPose().pz },
+      { x: () => seatPose.px, y: () => seatPose.py + 15 * NARROW_K, z: seatPose.pz + 11, duration: 12, immediateRender: false }, 0);
+    tl.fromTo(scrollGroup.rotation,
+      { x: () => heroPose().rx, y: () => heroPose().ry, z: () => heroPose().rz },
+      { x: seatPose.rx + 0.3, y: 0, z: 0, duration: 12, immediateRender: false }, 0);
+    tl.fromTo(scrollGroup.scale,
+      { x: () => heroPose().s, y: () => heroPose().s, z: () => heroPose().s },
+      { x: () => 0.142 * NARROW_K, y: () => 0.142 * NARROW_K, z: () => 0.142 * NARROW_K, duration: 12, immediateRender: false }, 0);
     tl.to(concrete.material, { opacity: 1, duration: 10 }, 2);
     tl.to(cavity.material, { opacity: 0.95, duration: 6 }, 5);
 
     // 0.12–0.20 — посадка в проём
-    tl.to(scrollGroup.position, { y: seatPose.py, z: seatPose.pz, duration: 8, ease: 'power2.out' }, 12);
+    tl.to(scrollGroup.position, { y: () => seatPose.py, z: seatPose.pz, duration: 8, ease: 'power2.out' }, 12);
     tl.to(scrollGroup.rotation, { x: seatPose.rx, duration: 8, ease: 'power2.out' }, 12);
-    tl.to(scrollGroup.scale, { x: seatPose.s, y: seatPose.s, z: seatPose.s, duration: 8 }, 12);
+    tl.to(scrollGroup.scale, { x: () => seatPose.s, y: () => seatPose.s, z: () => seatPose.s, duration: 8 }, 12);
     tl.to(contactShadow.material, { opacity: 0.6, duration: 6 }, 14);
 
     // 0.24–0.40 — отделка: лист ГКЛ «поднимается» к потолку и закрывает бетон
@@ -522,6 +573,12 @@ function init() {
   }
 
   /* ── рендер-цикл ─────────────────────────────────────── */
+  // прозрачные полноэкранные слои выключаем — иначе лишний overdraw на слабом GPU
+  const cullable = [concrete, drywall, paint, cavity, contactShadow];
+  function cullLayers() {
+    for (const m of cullable) m.visible = m.material.opacity > 0.004;
+  }
+
   const clock = new THREE.Clock();
   function tick() {
     requestAnimationFrame(tick);
@@ -529,6 +586,7 @@ function init() {
 
     applyMergeStyles();
     if (merge.canvas <= 0.01) return; // сцена невидима — не рендерим
+    cullLayers();
 
     const t = clock.getElapsedTime();
     // лёгкое парение + параллакс мыши, гаснущие при входе в сцену монтажа
@@ -549,6 +607,7 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     if (isNarrow() !== wasNarrow) {
       wasNarrow = isNarrow();
+      applyNarrow(); // ScrollTrigger сам сделает refresh → функциональные значения перечитаются
       if ((window.scrollY || 0) < window.innerHeight * 0.4) applyPose(heroPose());
     }
   });
@@ -565,6 +624,7 @@ function init() {
       }
       if (poseOverride) applyPose(poseOverride);
       applyMergeStyles();
+      cullLayers();
       renderer.render(scene, camera);
       const w = 760;
       const h = Math.round(w * canvas.height / canvas.width);
