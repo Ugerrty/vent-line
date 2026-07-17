@@ -556,7 +556,9 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   font-size: clamp(30px, 3.4vw, 46px);
   font-variant-numeric: tabular-nums;
 }
-.trust__stats span:last-child { font-size: 13px; color: var(--grey); }
+/* только подпись (прямой потомок) — не задеть число внутри <b> */
+.trust__stats div > span:last-child { font-size: 13px; color: var(--grey); }
+.trust__stats b span { font-size: inherit; color: inherit; }
 .trust__clients { margin-top: clamp(48px, 6vw, 80px); }
 .trust__clients-label {
   font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
