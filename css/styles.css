@@ -33,16 +33,15 @@ body {
   font-family: var(--font-body);
   font-weight: 400;
   color: var(--ink);
-  /* атмосфера hero: бело-серые световые растяжки + чертёжная сетка
+  /* атмосфера hero: лёгкий серо-белый градиент сверху + световые растяжки
      (видны сквозь прозрачный 3D-канвас, секции ниже накрывают своим фоном) */
   background-color: var(--paper);
   background-image:
-    radial-gradient(1100px 720px at 76% 18%, #ECEBE5 0%, rgba(236, 235, 229, 0) 65%),
-    radial-gradient(900px 600px at 8% 92%, #F1F0EA 0%, rgba(241, 240, 234, 0) 60%),
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: auto, auto, 132px 132px, 132px 132px;
-  background-position: 0 0, 0 0, -1px -1px, -1px -1px;
+    linear-gradient(180deg, #ECEBE6 0%, rgba(250, 250, 247, 0) 34%),
+    radial-gradient(1100px 720px at 76% 18%, #E9E8E2 0%, rgba(233, 232, 226, 0) 65%),
+    radial-gradient(900px 600px at 8% 92%, #F1F0EA 0%, rgba(241, 240, 234, 0) 60%);
+  background-repeat: no-repeat;
+  background-size: 100% 900px, auto, auto;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -259,6 +258,12 @@ button { font: inherit; background: none; border: none; cursor: pointer; color: 
   transition: transform 0.4s var(--ease-out);
 }
 .header__nav a:hover::after { transform: scaleX(1); transform-origin: left; }
+/* scrollspy: текущая секция подсвечена в меню */
+.header__nav a.is-current { color: var(--brass); }
+.header__nav a.is-current::after {
+  transform: scaleX(1); transform-origin: left;
+  background: var(--brass);
+}
 .header__side { display: flex; align-items: center; gap: 26px; }
 .header__phone { text-align: right; line-height: 1.3; }
 .header__phone span { font-weight: 600; font-size: 15px; display: block; }
@@ -632,7 +637,7 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .catalog__card:hover .catalog__media {
   box-shadow: 0 22px 44px -26px rgba(19, 19, 17, 0.3);
 }
-.catalog__media { transition: box-shadow 0.5s var(--ease-out); }
+.catalog__media { transition: box-shadow 0.5s var(--ease-out), transform 0.2s ease-out; }
 .catalog__card { display: flex; flex-direction: column; gap: 12px; }
 .catalog__media {
   overflow: hidden; background: #fff;
@@ -688,7 +693,7 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   display: grid; grid-template-columns: repeat(3, 1fr);
   gap: 22px;
 }
-.works__item { position: relative; overflow: hidden; margin: 0; }
+.works__item { position: relative; overflow: hidden; margin: 0; cursor: zoom-in; }
 .works__item--wide { grid-column: span 2; }
 .works__item img {
   width: 100%; height: 100%; object-fit: cover;
@@ -906,6 +911,72 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
   font-size: 12px; color: var(--grey);
 }
+
+/* ─────────── lightbox галереи ─────────── */
+.lightbox {
+  position: fixed; inset: 0; z-index: 110;
+  display: flex; align-items: center; justify-content: center; gap: 26px;
+  background: rgba(12, 12, 11, 0.93);
+  padding: 4vh 4vw;
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-out);
+}
+.lightbox.is-open { opacity: 1; }
+.lightbox__figure {
+  max-width: min(1200px, 84vw); max-height: 88vh;
+  display: flex; flex-direction: column; gap: 14px;
+  margin: 0;
+}
+.lightbox__figure img {
+  max-width: 100%; max-height: 78vh;
+  object-fit: contain;
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8);
+}
+.lightbox__figure figcaption {
+  display: flex; justify-content: space-between; gap: 20px;
+  font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(250, 250, 247, 0.75);
+}
+.lightbox__count { font-variant-numeric: tabular-nums; }
+.lightbox__nav {
+  width: 52px; height: 52px; flex: none;
+  border: 1px solid rgba(250, 250, 247, 0.35);
+  color: var(--paper);
+  font-size: 18px;
+  transition: background 0.3s, border-color 0.3s;
+}
+.lightbox__nav:hover { background: rgba(250, 250, 247, 0.12); border-color: var(--paper); }
+.lightbox__close {
+  position: absolute; top: 22px; right: 26px;
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox__close span {
+  position: absolute;
+  width: 24px; height: 2px;
+  background: var(--paper);
+  transition: transform 0.3s var(--ease-out);
+}
+.lightbox__close span:first-child { transform: rotate(45deg); }
+.lightbox__close span:last-child { transform: rotate(-45deg); }
+.lightbox__close:hover span { transform: rotate(0); }
+@media (max-width: 760px) {
+  .lightbox { gap: 10px; padding: 3vh 2vw; }
+  .lightbox__nav { width: 42px; height: 42px; }
+}
+
+/* ─────────── чипы ответов в квизе ─────────── */
+.quiz__chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.quiz__chips button {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  font-size: 12.5px;
+  color: var(--grey);
+  transition: border-color 0.25s, color 0.25s;
+}
+.quiz__chips button::after { content: " ✕"; font-size: 10px; opacity: 0.6; }
+.quiz__chips button:hover { border-color: var(--brass); color: var(--ink); }
 
 /* ─────────── кнопка «наверх» ─────────── */
 .to-top {

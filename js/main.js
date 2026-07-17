@@ -144,6 +144,89 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
   });
 }
 
+/* ── scrollspy: подсветка текущей секции в меню ────────── */
+(function initScrollspy() {
+  const links = [...document.querySelectorAll('.header__nav a[href^="#"]')];
+  if (!links.length || !('IntersectionObserver' in window)) return;
+  const map = new Map();
+  links.forEach(a => {
+    const sec = document.querySelector(a.getAttribute('href'));
+    if (sec) map.set(sec, a);
+  });
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(a => a.classList.remove('is-current'));
+        map.get(e.target)?.classList.add('is-current');
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  map.forEach((a, sec) => spy.observe(sec));
+})();
+
+/* ── lightbox галереи работ ────────────────────────────── */
+(function initLightbox() {
+  const box = document.getElementById('lightbox');
+  if (!box) return;
+  const items = [...document.querySelectorAll('.works__item')];
+  const img = document.getElementById('lightbox-img');
+  const cap = document.getElementById('lightbox-caption');
+  const count = document.getElementById('lightbox-count');
+  const closeBtn = document.getElementById('lightbox-close');
+  let idx = 0;
+
+  function show(i) {
+    idx = (i + items.length) % items.length;
+    const src = items[idx].querySelector('img');
+    img.src = src.src;
+    img.alt = src.alt;
+    cap.textContent = items[idx].querySelector('figcaption')?.textContent || '';
+    count.textContent = `${idx + 1} / ${items.length}`;
+  }
+  function open(i) {
+    show(i);
+    box.hidden = false;
+    void box.offsetWidth; // reflow, чтобы transition сработал
+    box.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    if (lenis) lenis.stop();
+    closeBtn.focus();
+    document.addEventListener('keydown', onKey);
+  }
+  function close() {
+    box.classList.remove('is-open');
+    document.removeEventListener('keydown', onKey);
+    document.body.style.overflow = '';
+    if (lenis) lenis.start();
+    setTimeout(() => { box.hidden = true; }, 350);
+  }
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') show(idx - 1);
+    if (e.key === 'ArrowRight') show(idx + 1);
+  }
+  items.forEach((item, i) => item.addEventListener('click', () => open(i)));
+  closeBtn.addEventListener('click', close);
+  document.getElementById('lightbox-prev').addEventListener('click', () => show(idx - 1));
+  document.getElementById('lightbox-next').addEventListener('click', () => show(idx + 1));
+  box.addEventListener('click', e => { if (e.target === box) close(); });
+})();
+
+/* ── лёгкий tilt карточек каталога за курсором ─────────── */
+if (!reduced && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  document.querySelectorAll('.catalog__card').forEach(card => {
+    const media = card.querySelector('.catalog__media');
+    if (!media) return;
+    card.addEventListener('mousemove', e => {
+      const r = media.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      media.style.transform = `perspective(700px) rotateX(${-y * 5}deg) rotateY(${x * 6}deg)`;
+    });
+    card.addEventListener('mouseleave', () => { media.style.transform = ''; });
+  });
+}
+
 /* ── кнопка «наверх» ───────────────────────────────────── */
 const toTop = document.getElementById('to-top');
 if (toTop) {
@@ -184,6 +267,10 @@ faqItems.forEach(item => {
   const sendEl = document.getElementById('quiz-send');
   const backEl = document.getElementById('quiz-back');
   const answers = [];
+  // чипы уже выбранных ответов — клик возвращает на тот шаг
+  const chipsEl = document.createElement('div');
+  chipsEl.className = 'quiz__chips';
+  body.insertBefore(chipsEl, qEl);
 
   function render() {
     const step = answers.length;
@@ -206,6 +293,15 @@ faqItems.forEach(item => {
     // короткий лок: защита от двойного клика по совпадающим координатам кнопок
     optionsEl.style.pointerEvents = 'none';
     setTimeout(() => { optionsEl.style.pointerEvents = ''; }, 380);
+    chipsEl.innerHTML = '';
+    answers.forEach((a, i) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.textContent = `${QUIZ[i].k}: ${a}`;
+      chip.title = 'Изменить ответ';
+      chip.addEventListener('click', () => { answers.length = i; render(); });
+      chipsEl.appendChild(chip);
+    });
     label.textContent = `Шаг ${step + 1} из ${QUIZ.length}`;
     bar.style.transform = `scaleX(${(step + 1) / QUIZ.length * 0.9})`;
     qEl.textContent = QUIZ[step].q;
