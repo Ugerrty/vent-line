@@ -35,8 +35,15 @@ function init() {
     canvas, alpha: true, antialias: true,
     powerPreference: 'high-performance'
   });
-  // 1.25 вместо 1.5: на слабом GPU даёт ~30% меньше пикселей почти без потери чёткости
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+  // адаптивное разрешение: старт 1.25, при медленных кадрах ступенчато снижаем
+  // DPR вплоть до 0.7 — гарантия плавного скролла даже на самом слабом GPU
+  const DPR_STEPS = [1.25, 1.0, 0.85, 0.7];
+  let dprIndex = 0;
+  function applyDpr() {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_STEPS[dprIndex]));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+  applyDpr();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.localClippingEnabled = true; // для «прокатки» краски клип-плоскостью
 
@@ -51,9 +58,9 @@ function init() {
     c.width = 64; c.height = 512;
     const g = c.getContext('2d');
     const grad = g.createLinearGradient(0, 0, 0, 512);
-    grad.addColorStop(0, '#CDCCC2');
-    grad.addColorStop(0.45, '#E6E5DD');
-    grad.addColorStop(1, '#FAFAF7');
+    grad.addColorStop(0, '#D3D2C9');
+    grad.addColorStop(0.45, '#EAE8DF');
+    grad.addColorStop(1, '#FEFDF9');
     g.fillStyle = grad;
     g.fillRect(0, 0, 64, 512);
     // мягкая световая растяжка справа-сверху, за моделью
@@ -380,7 +387,7 @@ function init() {
     const c = document.createElement('canvas');
     c.width = c.height = 512;
     const g = c.getContext('2d');
-    g.fillStyle = '#f7f6f2';
+    g.fillStyle = '#FBFAF4';
     g.fillRect(0, 0, 512, 512);
     // мягкий свет из верхнего угла
     const lightGrad = g.createLinearGradient(0, 0, 512, 512);
@@ -508,58 +515,70 @@ function init() {
     g.fillRect(0, 0, 64, 64);
     return new THREE.CanvasTexture(c);
   }
-  const DUST_N = 130;
-  const dustSeed = [];
-  const dustPos = new Float32Array(DUST_N * 3);
-  for (let i = 0; i < DUST_N; i++) {
-    // источники: нижняя кромка решётки и её торцы
-    const x0 = Math.random() < 0.7
-      ? (Math.random() - 0.5) * GR_W
-      : (Math.random() > 0.5 ? 1 : -1) * GR_W / 2;
-    const y0 = SEAT.y - GR_H / 2 + Math.random() * 3;
-    dustSeed.push({
-      x0, y0,
-      vx: (Math.random() - 0.5) * 26 + Math.sign(x0) * 4,
-      vy: -(3 + Math.random() * 15),
-      vz: Math.random() * 5
+  // два слоя пыли: мелкая резкая крошка + крупные мягкие клубы.
+  // Дешевле любого видео (~140 GPU-точек) и скрабится скроллом в обе стороны.
+  function makeDustSystem(count, size, color, soft) {
+    const seeds = [];
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const x0 = Math.random() < 0.7
+        ? (Math.random() - 0.5) * GR_W
+        : (Math.random() > 0.5 ? 1 : -1) * GR_W / 2;
+      seeds.push({
+        x0,
+        y0: SEAT.y - GR_H / 2 + Math.random() * 3,
+        vx: (Math.random() - 0.5) * (soft ? 16 : 28) + Math.sign(x0) * 4,
+        vy: -(2 + Math.random() * (soft ? 8 : 16)),
+        vz: Math.random() * 5,
+        ph: Math.random() * Math.PI * 2
+      });
+      pos[i * 3] = x0;
+      pos[i * 3 + 1] = seeds[i].y0;
+      pos[i * 3 + 2] = PLANE_Z + 1;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({
+      map: makeDustSprite(),
+      size, transparent: true, opacity: 0, depthWrite: false, color
     });
-    dustPos[i * 3] = x0;
-    dustPos[i * 3 + 1] = y0;
-    dustPos[i * 3 + 2] = PLANE_Z + 1;
+    const pts = new THREE.Points(geo, mat);
+    pts.visible = false;
+    stage.add(pts);
+    return { seeds, geo, mat, pts, count, soft };
   }
-  const dustGeo = new THREE.BufferGeometry();
-  dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
-  const dustMat = new THREE.PointsMaterial({
-    map: makeDustSprite(),
-    size: 3.2,
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
-    color: 0xdedbd3
-  });
-  const dust = new THREE.Points(dustGeo, dustMat);
-  dust.visible = false;
-  stage.add(dust);
+  const dustFine = makeDustSystem(110, 2.6, 0xd9d6ce, false);
+  const dustPuff = makeDustSystem(26, 7.5, 0xe4e1d9, true);
 
-  // p — общий прогресс сцены; пыль живёт в окне удара 0.175…0.28
+  function applyDustSystem(sys, t) {
+    const e = 1 - (1 - t) * (1 - t);
+    const a = sys.geo.attributes.position.array;
+    for (let i = 0; i < sys.count; i++) {
+      const s = sys.seeds[i];
+      // лёгкий боковой завиток — пыль «клубится», а не разлетается по прямой
+      const curl = Math.sin(t * 5 + s.ph) * (sys.soft ? 3.2 : 1.6) * t;
+      a[i * 3] = s.x0 + s.vx * e + curl;
+      a[i * 3 + 1] = s.y0 + s.vy * e - (sys.soft ? 4 : 7) * t * t;
+      a[i * 3 + 2] = PLANE_Z + 1 + s.vz * e;
+    }
+    sys.geo.attributes.position.needsUpdate = true;
+  }
+
+  // p — общий прогресс сцены; пыль живёт в окне удара 0.168…0.29
   function applyDust(p) {
-    const t = THREE.MathUtils.clamp((p - 0.168) / 0.1, 0, 1);
-    if (t <= 0 || t >= 1) {
-      dust.visible = false;
-      dustMat.opacity = 0;
+    const t = THREE.MathUtils.clamp((p - 0.168) / 0.12, 0, 1);
+    const on = t > 0 && t < 1;
+    dustFine.pts.visible = on;
+    dustPuff.pts.visible = on;
+    if (!on) {
+      dustFine.mat.opacity = 0;
+      dustPuff.mat.opacity = 0;
       return;
     }
-    dust.visible = true;
-    const e = 1 - (1 - t) * (1 - t);
-    const attr = dustGeo.attributes.position;
-    for (let i = 0; i < DUST_N; i++) {
-      const s = dustSeed[i];
-      attr.array[i * 3] = s.x0 + s.vx * e;
-      attr.array[i * 3 + 1] = s.y0 + s.vy * e - 7 * t * t;
-      attr.array[i * 3 + 2] = PLANE_Z + 1 + s.vz * e;
-    }
-    attr.needsUpdate = true;
-    dustMat.opacity = Math.sin(Math.PI * t) * 0.75;
+    applyDustSystem(dustFine, t);
+    applyDustSystem(dustPuff, Math.min(t * 1.15, 1));
+    dustFine.mat.opacity = Math.sin(Math.PI * t) * 0.7;
+    dustPuff.mat.opacity = Math.sin(Math.PI * Math.min(t * 1.15, 1)) * 0.4;
   }
 
   /* ── потоки воздуха из щелей (финишный этап) ─────────── */
@@ -574,11 +593,15 @@ function init() {
     g.fillStyle = grad;
     g.save();
     g.translate(16, 0);
-    g.scale(0.12, 1); // узкая вертикальная струйка
+    g.scale(0.09, 1); // тонкая вертикальная струйка с хвостом
     g.translate(-16, 0);
     g.fillRect(0, 0, 32, 64);
     g.restore();
-    return new THREE.CanvasTexture(c);
+    const t = new THREE.CanvasTexture(c);
+    t.generateMipmaps = false;
+    t.minFilter = THREE.LinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    return t;
   }
   // координаты — в системе floatGroup (миллиметры модели): щели на ±35 мм
   const AIR_N = 140;
@@ -598,11 +621,11 @@ function init() {
   airGeo.setAttribute('position', new THREE.BufferAttribute(airPos, 3));
   const airMat = new THREE.PointsMaterial({
     map: makeStreakSprite(),
-    size: 7,
+    size: 8.5,
     transparent: true,
     opacity: 0,
     depthWrite: false,
-    color: 0xf2f4f6
+    color: 0xf4f6f7
   });
   const air = new THREE.Points(airGeo, airMat);
   air.visible = false; // добавляется в floatGroup ниже, после его создания
@@ -624,9 +647,10 @@ function init() {
     for (let i = 0; i < AIR_N; i++) {
       const s = airSeed[i];
       const life = (timeSec * s.speed + s.phase) % 1;
-      a[i * 3] = s.x + s.drift * life;
-      a[i * 3 + 1] = s.row - 12 - life * 100;
-      a[i * 3 + 2] = 34 + life * 30;
+      // синусоидальный снос — поток «дышит», как настоящий воздух
+      a[i * 3] = s.x + s.drift * life + Math.sin(life * 6.28 + s.phase * 6.28) * 7 * life;
+      a[i * 3 + 1] = s.row - 12 - life * 108;
+      a[i * 3 + 2] = 34 + life * 32;
     }
     airGeo.attributes.position.needsUpdate = true;
   }
@@ -668,10 +692,12 @@ function init() {
 
   /* ── позы ─────────────────────────────────────────────── */
   function isNarrow() { return camera.aspect < 0.95; }
+  // hero: профиль стоит вертикально (как фирменные продуктовые рендеры) —
+  // помещается по высоте и не заходит на текст слева
   function heroPose() {
     return isNarrow()
-      ? { px: 0, py: -13, pz: 16, rx: 0.2, ry: -0.5, rz: -0.08, s: 0.06 }
-      : { px: 12, py: -2, pz: 18, rx: 0.2, ry: -0.52, rz: -0.14, s: 0.115 };
+      ? { px: 9, py: -4, pz: 10, rx: 0.05, ry: 0.5, rz: 1.5, s: 0.082 }
+      : { px: 27, py: -1, pz: 14, rx: 0.05, ry: 0.5, rz: 1.5, s: 0.105 };
   }
   const seatPose = { px: SEAT.x, py: SEAT.y, pz: -1.4, rx: 0.02, ry: 0, rz: 0, s: 0.155 };
   function applyNarrow() {
@@ -680,11 +706,12 @@ function init() {
     seatPose.px = SEAT.x * NARROW_K;
     seatPose.py = SEAT.y * NARROW_K;
     seatPose.s = 0.155 * NARROW_K;
-    dustMat.size = 3.2 * NARROW_K;
-    airMat.size = 7 * NARROW_K;
+    dustFine.mat.size = 2.6 * NARROW_K;
+    dustPuff.mat.size = 7.5 * NARROW_K;
+    airMat.size = 8.5 * NARROW_K;
   }
   applyNarrow();
-  const entryPose = { px: 52, py: -46, pz: -4, rx: -0.6, ry: -1.5, rz: 0.4, s: 0.1 };
+  const entryPose = { px: 42, py: -58, pz: -2, rx: -0.35, ry: 1.9, rz: 1.95, s: 0.09 };
 
   function applyPose(p) {
     scrollGroup.position.set(p.px, p.py, p.pz);
@@ -938,25 +965,44 @@ function init() {
     if (hasMesh && heroBlend > 0.02) {
       const hp = heroPose();
       const bob = floatGroup.position.y; // ±1.1 от парения
-      // ниже и чуть левее силуэта модели, ближе к камере — чтобы не перекрывалась
-      heroShadow.position.set(scrollGroup.position.x - 6, hp.py - 17, hp.pz - 2);
-      const k = scrollGroup.scale.x / 0.115;
-      heroShadow.scale.setScalar(k * (1.5 + bob * 0.06));
+      // компактная тень у основания вертикально стоящего профиля
+      const baseY = hp.py - (502 * hp.s) / 2 - 4.5;
+      heroShadow.position.set(scrollGroup.position.x - 1, baseY, hp.pz - 2);
+      const k = scrollGroup.scale.x / 0.105;
+      heroShadow.scale.set(k * (0.62 + bob * 0.03), k * 0.5, 1);
       const drift = Math.abs(scrollGroup.position.y - hp.py);
       heroShadow.material.opacity =
-        heroBlend * THREE.MathUtils.clamp(1 - drift / 7, 0, 1) * (0.52 - bob * 0.05);
+        heroBlend * THREE.MathUtils.clamp(1 - drift / 7, 0, 1) * (0.5 - bob * 0.06);
     } else {
       heroShadow.material.opacity = 0;
     }
   }
 
   const clock = new THREE.Clock();
-  function tick() {
+  // адаптация под слабое железо: скользящее среднее длительности кадра;
+  // медленно — снижаем DPR ступенью, стабильно быстро — поднимаем обратно
+  let frameAvg = 16, lastT = 0, calmFrames = 0;
+  function adaptQuality(now) {
+    const dt = now - lastT;
+    lastT = now;
+    if (dt <= 0 || dt > 250) return; // возврат из фоновой вкладки — не считаем
+    frameAvg += (dt - frameAvg) * 0.08;
+    if (frameAvg > 26 && dprIndex < DPR_STEPS.length - 1) {
+      dprIndex++; applyDpr(); frameAvg = 16; calmFrames = 0;
+    } else if (frameAvg < 14.5 && dprIndex > 0) {
+      if (++calmFrames > 240) { dprIndex--; applyDpr(); frameAvg = 16; calmFrames = 0; }
+    } else {
+      calmFrames = 0;
+    }
+  }
+
+  function tick(now) {
     requestAnimationFrame(tick);
     if (document.hidden || !modelReady) return;
 
     applyMergeStyles();
     if (merge.canvas <= 0.01) return; // сцена невидима — не рендерим
+    adaptQuality(now || performance.now());
     cullLayers();
 
     const t = clock.getElapsedTime();
@@ -1008,7 +1054,7 @@ function init() {
       const c2 = document.createElement('canvas');
       c2.width = w; c2.height = h;
       const g = c2.getContext('2d');
-      g.fillStyle = '#FAFAF7';
+      g.fillStyle = '#FEFDF9';
       g.fillRect(0, 0, w, h);
       g.drawImage(renderer.domElement, 0, 0, w, h);
       return c2.toDataURL('image/jpeg', 0.82);

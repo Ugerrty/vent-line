@@ -6,12 +6,13 @@
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  --paper:   #FAFAF7;
-  --paper-2: #F2F1EC;
+  /* молочный белый: тёплое молоко со сливочной ноткой, не картон и не чистый white */
+  --paper:   #FEFDF9;
+  --paper-2: #F5F4ED;
   --ink:     #131311;
   --ink-soft:#2E2E2A;
   --grey:    #6F6F67;
-  --line:    #E4E3DC;
+  --line:    #E8E7DF;
   --brass:   #9C7C3C;
   --brass-2: #C9B27E;
 
@@ -37,9 +38,9 @@ body {
      (видны сквозь прозрачный 3D-канвас, секции ниже накрывают своим фоном) */
   background-color: var(--paper);
   background-image:
-    linear-gradient(180deg, #D9D8CF 0%, #E9E8E1 34%, rgba(250, 250, 247, 0) 82%),
+    linear-gradient(180deg, #D9D8CF 0%, #EBEAE2 34%, rgba(254, 253, 249, 0) 82%),
     radial-gradient(1100px 720px at 76% 18%, rgba(214, 213, 204, 0.75) 0%, rgba(214, 213, 204, 0) 65%),
-    radial-gradient(900px 600px at 8% 92%, #F1F0EA 0%, rgba(241, 240, 234, 0) 60%);
+    radial-gradient(900px 600px at 8% 92%, #F4F3EC 0%, rgba(244, 243, 236, 0) 60%);
   background-repeat: no-repeat;
   background-size: 100% 130vh, auto, auto;
   line-height: 1.6;
@@ -104,7 +105,7 @@ button { font: inherit; background: none; border: none; cursor: pointer; color: 
   font-size: 12px; font-weight: 500;
   letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--grey);
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   display: flex; align-items: center; gap: 12px;
 }
 /* фирменный знак «двух щелей» перед лейблами секций */
@@ -336,17 +337,28 @@ html.is-dragging, html.is-dragging .hero { cursor: grabbing; }
 html.is-dragging { user-select: none; -webkit-user-select: none; }
 .hero__inner {
   width: var(--w); margin: 0 auto;
-  padding: calc(var(--header-h) + 40px) 0 100px;
+  padding: calc(var(--header-h) + 14px) 0 84px;
   position: relative;
 }
 .hero__text { max-width: 640px; position: relative; z-index: 2; }
 .hero__title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(44px, 6.4vw, 92px);
+  font-size: clamp(42px, 5.5vw, 78px);
   line-height: 1.02;
   text-transform: uppercase;
-  letter-spacing: 0.015em;
+  letter-spacing: 0.01em;
+}
+/* контраст характеров: инженерный гротеск × рукописный курсивный серif-акцент */
+.hero__hl {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  text-transform: lowercase;
+  font-size: 1.18em;
+  line-height: 0.75;
+  letter-spacing: 0.005em;
+  padding-right: 0.1em;
 }
 /* латунная «щель» прорисовывается под ключевым словом после появления заголовка */
 .hero__hl { position: relative; white-space: nowrap; }
@@ -361,11 +373,11 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .is-in .hero__hl::after { transform: scaleX(1); }
 
 .hero__sub {
-  margin-top: 30px; max-width: 46ch;
+  margin-top: 16px; max-width: 46ch;
   color: var(--grey); font-weight: 300;
   font-size: clamp(15px, 1.3vw, 18px);
 }
-.hero__usp { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; }
+.hero__usp { margin-top: 16px; display: flex; flex-direction: column; gap: 7px; }
 .hero__usp li {
   position: relative; padding-left: 26px;
   font-size: 14.5px; color: var(--ink-soft);
@@ -374,10 +386,10 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   content: ""; position: absolute; left: 0; top: 0.72em;
   width: 14px; height: 2px; background: var(--brass);
 }
-.hero__cta { margin-top: 44px; display: flex; gap: 16px; flex-wrap: wrap; }
+.hero__cta { margin-top: 24px; display: flex; gap: 16px; flex-wrap: wrap; }
 /* живые RAL-свотчи: перекрашивают 3D-модель */
 .hero__colors {
-  margin-top: 30px;
+  margin-top: 16px;
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
 }
 .hero__colors span {
@@ -1133,6 +1145,12 @@ html:not(.has-scene) .hero__colors { display: none; }
   font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--grey);
   opacity: 0.65;
+}
+
+/* ─────────── ленивый рендер нижних секций (60fps скролла) ─────────── */
+.how, .quiz, .faq, .contact, .footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
 }
 
 /* ─────────── печать ─────────── */
