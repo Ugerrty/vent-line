@@ -11,7 +11,20 @@ let preloaderHidden = false;
 function hidePreloader() {
   if (preloaderHidden || !preloader) return;
   preloaderHidden = true;
-  preloader.classList.add('is-done');
+  // FLIP: монограмма перелетает точно в логотип шапки, страница «продолжает» загрузку
+  const mark = preloader.querySelector('.preloader__mark');
+  const target = document.querySelector('.header__mark');
+  if (!reduced && mark && target && target.getBoundingClientRect().width > 0) {
+    const a = mark.getBoundingClientRect();
+    const b = target.getBoundingClientRect();
+    const dx = (b.left + b.width / 2) - (a.left + a.width / 2);
+    const dy = (b.top + b.height / 2) - (a.top + a.height / 2);
+    preloader.classList.add('is-flying');
+    mark.style.transform = `translate(${dx}px, ${dy}px) scale(${b.width / a.width})`;
+    setTimeout(() => preloader.classList.add('is-done'), 700);
+  } else {
+    preloader.classList.add('is-done');
+  }
   initReveals(); // reveal-анимации стартуют, когда прелоадер ушёл
 }
 if (window.__sceneReady) setTimeout(hidePreloader, 250);
@@ -58,6 +71,12 @@ function onScroll() {
   }
   const hint = document.getElementById('hero-hint');
   if (hint) hint.classList.toggle('is-away', y > 90);
+  // кольцо прогресса на кнопке «наверх»
+  const ring = document.getElementById('to-top-ring');
+  if (ring) {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    ring.style.strokeDashoffset = (157.1 * (1 - (max > 0 ? Math.min(y / max, 1) : 0))).toFixed(1);
+  }
   lastY = y;
 }
 window.addEventListener('scroll', onScroll, { passive: true });

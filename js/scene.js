@@ -494,6 +494,31 @@ function init() {
   cavity.position.set(SEAT.x, SEAT.y, PLANE_Z + 0.3);
   stage.add(cavity);
 
+  // тёплое пятно света «включили светильник» — финал покраски
+  function makeLightSpotTex() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
+    // свет на белом потолке читается не бликом, а тёплой тенью по периферии
+    const grad = g.createRadialGradient(128, 128, 20, 128, 128, 126);
+    grad.addColorStop(0, 'rgba(110, 100, 78, 0)');
+    grad.addColorStop(0.55, 'rgba(110, 100, 78, 0.04)');
+    grad.addColorStop(1, 'rgba(110, 100, 78, 0.3)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c);
+    t.generateMipmaps = false;
+    t.minFilter = THREE.LinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    return t;
+  }
+  const lightSpot = new THREE.Mesh(
+    new THREE.PlaneGeometry(150, 110),
+    new THREE.MeshBasicMaterial({ map: makeLightSpotTex(), transparent: true, opacity: 0, depthWrite: false })
+  );
+  lightSpot.position.set(SEAT.x - 10, SEAT.y + 6, PLANE_Z + 0.15);
+  stage.add(lightSpot);
+
   // контактная тень
   const contactShadow = new THREE.Mesh(
     new THREE.PlaneGeometry(GR_W + 26, GR_H + 22),
@@ -549,6 +574,50 @@ function init() {
   }
   const dustFine = makeDustSystem(110, 2.6, 0xd9d6ce, false);
   const dustPuff = makeDustSystem(26, 7.5, 0xe4e1d9, true);
+
+  // ambient-пылинки стройки: медленно плывут в «воздухе» на черновых этапах
+  const AMB_N = 18;
+  const ambSeed = [];
+  const ambPos = new Float32Array(AMB_N * 3);
+  for (let i = 0; i < AMB_N; i++) {
+    ambSeed.push({
+      x: (Math.random() - 0.5) * 200,
+      y: (Math.random() - 0.5) * 120,
+      sp: 0.02 + Math.random() * 0.05,
+      ph: Math.random() * Math.PI * 2
+    });
+    ambPos[i * 3 + 2] = PLANE_Z + 2;
+  }
+  const ambGeo = new THREE.BufferGeometry();
+  ambGeo.setAttribute('position', new THREE.BufferAttribute(ambPos, 3));
+  const ambMat = new THREE.PointsMaterial({
+    map: makeDustSprite(), size: 1.7, transparent: true, opacity: 0, depthWrite: false, color: 0xe6e3da
+  });
+  const amb = new THREE.Points(ambGeo, ambMat);
+  amb.visible = false;
+  stage.add(amb);
+
+  function updateAmbient(timeSec) {
+    const inWin = lastP > 0.05 && lastP < 0.46;
+    const ramp = inWin
+      ? Math.min((lastP - 0.05) / 0.05, 1) * Math.min((0.46 - lastP) / 0.06, 1)
+      : 0;
+    if (ramp <= 0) {
+      amb.visible = false;
+      ambMat.opacity = 0;
+      return;
+    }
+    amb.visible = true;
+    ambMat.opacity = 0.16 * ramp;
+    const a = ambGeo.attributes.position.array;
+    for (let i = 0; i < AMB_N; i++) {
+      const s = ambSeed[i];
+      a[i * 3] = s.x + Math.sin(timeSec * s.sp * 7 + s.ph) * 9;
+      a[i * 3 + 1] = s.y + Math.cos(timeSec * s.sp * 5 + s.ph * 2) * 6 + timeSec * s.sp * 2 % 8;
+      a[i * 3 + 2] = PLANE_Z + 2;
+    }
+    ambGeo.attributes.position.needsUpdate = true;
+  }
 
   function applyDustSystem(sys, t) {
     const e = 1 - (1 - t) * (1 - t);
@@ -868,6 +937,8 @@ function init() {
     // 0.46–0.60 — чистовой финиш: краска «прокатывается» слева направо
     tl.to(stagesFx, { paint: 1, duration: 14, ease: 'power1.inOut' }, 46);
     tl.to(contactShadow.material, { opacity: 0.32, duration: 14 }, 46);
+    // «включили светильник»: тёплое пятно света на свежем потолке
+    tl.to(lightSpot.material, { opacity: 0.5, duration: 6, ease: 'power1.out' }, 53);
 
     // 0.57–0.74 — сцена притемняется, светящаяся щель раскрывает фотографию
     tl.to(merge, { dim: 0.16, duration: 4 }, 57);
@@ -946,7 +1017,7 @@ function init() {
 
   /* ── рендер-цикл ─────────────────────────────────────── */
   // прозрачные полноэкранные слои выключаем — иначе лишний overdraw на слабом GPU
-  const cullable = [concrete, drywall, finish, paint, cavity, contactShadow, heroShadow, wetEdge];
+  const cullable = [concrete, drywall, finish, paint, cavity, contactShadow, heroShadow, wetEdge, lightSpot];
   function cullLayers() {
     for (const m of cullable) m.visible = m.material.opacity > 0.004;
   }
@@ -1007,6 +1078,7 @@ function init() {
     // тень под моделью в hero: следует за ней, дышит вместе с парением
     updateHeroShadow();
     updateAir(t);
+    updateAmbient(t);
     renderer.render(scene, camera);
   }
   tick();
@@ -1039,6 +1111,7 @@ function init() {
       updateHeroShadow();
       cullLayers();
       updateAir(3.7); // детерминированный кадр потоков воздуха
+      updateAmbient(3.7);
       renderer.render(scene, camera);
       const w = 760;
       const h = Math.round(w * canvas.height / canvas.width);
