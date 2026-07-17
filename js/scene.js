@@ -44,19 +44,51 @@ function init() {
   const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.1, 500);
   camera.position.set(0, 0, 120);
 
-  /* ── matcap «чёрная порошковая окраска по металлу» ───── */
-  // матовая краска: мягкий широкий свет, сатиновый отлив, никаких хромовых полос
-  function makeMatcap() {
+  // градиент hero рисуем фоном самой сцены: он гарантированно виден там же,
+  // где виден рендер модели (страничные подложки могут прятаться кешем/слоями)
+  function makeSceneBackground() {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 512;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 0, 512);
+    grad.addColorStop(0, '#CDCCC2');
+    grad.addColorStop(0.45, '#E6E5DD');
+    grad.addColorStop(1, '#FAFAF7');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 64, 512);
+    // мягкая световая растяжка справа-сверху, за моделью
+    const wash = g.createRadialGradient(52, 110, 8, 52, 110, 260);
+    wash.addColorStop(0, 'rgba(255,255,255,0.5)');
+    wash.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = wash;
+    g.fillRect(0, 0, 64, 512);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+  scene.background = makeSceneBackground();
+
+  /* ── matcap «порошковая окраска по металлу» ──────────── */
+  // матовая краска: мягкий широкий свет, сатиновый отлив, никаких хромовых полос.
+  // Два варианта: тёмный (чёрный/антрацит) и светлый (белые RAL) — для перекраски.
+  function makeMatcap(variant) {
     const S = 512;
     const c = document.createElement('canvas');
     c.width = c.height = S;
     const g = c.getContext('2d');
 
     const base = g.createRadialGradient(S * 0.42, S * 0.36, S * 0.04, S * 0.5, S * 0.5, S * 0.64);
-    base.addColorStop(0, '#48494d');
-    base.addColorStop(0.38, '#2e2f32');
-    base.addColorStop(0.72, '#1c1d1f');
-    base.addColorStop(1, '#0e0e0f');
+    if (variant === 'light') {
+      base.addColorStop(0, '#ffffff');
+      base.addColorStop(0.38, '#eceae5');
+      base.addColorStop(0.72, '#cfcdc7');
+      base.addColorStop(1, '#a9a7a1');
+    } else {
+      base.addColorStop(0, '#48494d');
+      base.addColorStop(0.38, '#2e2f32');
+      base.addColorStop(0.72, '#1c1d1f');
+      base.addColorStop(1, '#0e0e0f');
+    }
     g.fillStyle = base;
     g.fillRect(0, 0, S, S);
 
@@ -362,23 +394,29 @@ function init() {
     return t;
   }
 
-  // контактная тень под решёткой
+  // контактная тень под решёткой (POT-канвас + без mipmaps — некоторые
+  // драйверы молча не рисуют NPOT-текстуры с дефолтной фильтрацией)
   function makeShadowTex() {
+    const S = 512;
     const c = document.createElement('canvas');
-    c.width = 256; c.height = 96;
+    c.width = c.height = S;
     const g = c.getContext('2d');
-    const grad = g.createRadialGradient(128, 48, 6, 128, 48, 120);
-    grad.addColorStop(0, 'rgba(20,20,18,0.55)');
-    grad.addColorStop(0.5, 'rgba(20,20,18,0.22)');
+    const grad = g.createRadialGradient(S / 2, S / 2, S * 0.02, S / 2, S / 2, S * 0.48);
+    grad.addColorStop(0, 'rgba(20,20,18,0.8)');
+    grad.addColorStop(0.5, 'rgba(20,20,18,0.32)');
     grad.addColorStop(1, 'rgba(20,20,18,0)');
     g.fillStyle = grad;
     g.save();
-    g.translate(128, 48);
-    g.scale(1, 0.38);
-    g.translate(-128, -48);
-    g.fillRect(0, -80, 256, 256);
+    g.translate(S / 2, S / 2);
+    g.scale(1, 0.4);
+    g.translate(-S / 2, -S / 2);
+    g.fillRect(0, -S, S, S * 3);
     g.restore();
-    return new THREE.CanvasTexture(c);
+    const t = new THREE.CanvasTexture(c);
+    t.generateMipmaps = false;
+    t.minFilter = THREE.LinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    return t;
   }
 
   /* ── слои «потолка» ──────────────────────────────────── */
@@ -594,7 +632,23 @@ function init() {
   }
 
   /* ── решётка (STL) ───────────────────────────────────── */
-  const material = new THREE.MeshMatcapMaterial({ matcap: makeMatcap(), color: 0xffffff });
+  const matcapDark = makeMatcap('dark');
+  const matcapLight = makeMatcap('light');
+  const material = new THREE.MeshMatcapMaterial({ matcap: matcapDark, color: 0xffffff });
+
+  // живая перекраска профиля из hero-свотчей (любой RAL — факт производства)
+  const RAL_PRESETS = {
+    '9005': { light: false, tint: '#ffffff' },
+    '7016': { light: false, tint: '#9aa2a8' },
+    '9016': { light: true, tint: '#ffffff' }
+  };
+  function setGrilleColor(code) {
+    const p = RAL_PRESETS[code];
+    if (!p) return;
+    material.matcap = p.light ? matcapLight : matcapDark;
+    material.color.set(p.tint);
+    material.needsUpdate = true;
+  }
 
   const scrollGroup = new THREE.Group(); // управляется скроллом
   const floatGroup = new THREE.Group();  // лёгкое парение + параллакс мыши
@@ -878,6 +932,24 @@ function init() {
     for (const m of cullable) m.visible = m.material.opacity > 0.004;
   }
 
+  // тень-«пол» под моделью: лежит на фиксированной высоте, дышит с парением,
+  // тает при отлёте модели (entry-подлёт или старт падения в сцену)
+  function updateHeroShadow() {
+    if (hasMesh && heroBlend > 0.02) {
+      const hp = heroPose();
+      const bob = floatGroup.position.y; // ±1.1 от парения
+      // ниже и чуть левее силуэта модели, ближе к камере — чтобы не перекрывалась
+      heroShadow.position.set(scrollGroup.position.x - 6, hp.py - 17, hp.pz - 2);
+      const k = scrollGroup.scale.x / 0.115;
+      heroShadow.scale.setScalar(k * (1.5 + bob * 0.06));
+      const drift = Math.abs(scrollGroup.position.y - hp.py);
+      heroShadow.material.opacity =
+        heroBlend * THREE.MathUtils.clamp(1 - drift / 7, 0, 1) * (0.52 - bob * 0.05);
+    } else {
+      heroShadow.material.opacity = 0;
+    }
+  }
+
   const clock = new THREE.Clock();
   function tick() {
     requestAnimationFrame(tick);
@@ -896,21 +968,7 @@ function init() {
     floatGroup.rotation.z = Math.sin(t * 0.5) * 0.012 * heroBlend;
 
     // тень под моделью в hero: следует за ней, дышит вместе с парением
-    // тень-«пол» под моделью: лежит на фиксированной высоте, дышит с парением,
-    // тает при отлёте модели (entry-подлёт или старт падения в сцену)
-    if (hasMesh && heroBlend > 0.02) {
-      const hp = heroPose();
-      const bob = floatGroup.position.y; // ±1.1 от парения
-      heroShadow.position.set(scrollGroup.position.x - 2, hp.py - 12, hp.pz - 8);
-      const k = scrollGroup.scale.x / 0.115;
-      heroShadow.scale.setScalar(k * (1 + bob * 0.045));
-      const drift = Math.abs(scrollGroup.position.y - hp.py);
-      heroShadow.material.opacity =
-        heroBlend * THREE.MathUtils.clamp(1 - drift / 7, 0, 1) * (0.34 - bob * 0.04);
-    } else {
-      heroShadow.material.opacity = 0;
-    }
-
+    updateHeroShadow();
     updateAir(t);
     renderer.render(scene, camera);
   }
@@ -941,8 +999,8 @@ function init() {
       }
       if (poseOverride) applyPose(poseOverride);
       applyMergeStyles();
+      updateHeroShadow();
       cullLayers();
-      heroShadow.material.opacity = 0; // в снапшотах тень hero не участвует
       updateAir(3.7); // детерминированный кадр потоков воздуха
       renderer.render(scene, camera);
       const w = 760;
@@ -955,6 +1013,18 @@ function init() {
       g.drawImage(renderer.domElement, 0, 0, w, h);
       return c2.toDataURL('image/jpeg', 0.82);
     },
-    ready: () => modelReady
+    ready: () => modelReady,
+    setColor: setGrilleColor,
+    _shadow: heroShadow,
+    debug: () => ({
+      shadow: {
+        o: +heroShadow.material.opacity.toFixed(3),
+        v: heroShadow.visible,
+        p: heroShadow.position.toArray().map(n => +n.toFixed(1)),
+        s: +heroShadow.scale.x.toFixed(2)
+      },
+      blend: heroBlend, mesh: hasMesh,
+      grp: scrollGroup.position.toArray().map(n => +n.toFixed(1))
+    })
   };
 }

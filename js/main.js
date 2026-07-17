@@ -56,6 +56,8 @@ function onScroll() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
     headerProgress.style.transform = `scaleX(${max > 0 ? Math.min(y / max, 1) : 0})`;
   }
+  const hint = document.getElementById('hero-hint');
+  if (hint) hint.classList.toggle('is-away', y > 90);
   lastY = y;
 }
 window.addEventListener('scroll', onScroll, { passive: true });
@@ -180,6 +182,7 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
       wrap.classList.add('is-on');
     }
     wrap.classList.toggle('is-active', !!e.target.closest(INTERACTIVE));
+    wrap.classList.toggle('is-view', !!e.target.closest('.works__item'));
     kick();
   }, { passive: true });
   document.addEventListener('pointerdown', () => { wrap.classList.add('is-press'); kick(); });
@@ -334,6 +337,21 @@ if (!reduced && matchMedia('(hover: hover) and (pointer: fine)').matches) {
     card.addEventListener('mouseleave', () => { media.style.transform = ''; });
   });
 }
+
+/* ── живые RAL-свотчи: перекраска 3D-модели ────────────── */
+document.querySelectorAll('.hero__colors button[data-ral]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!window.__vent?.setColor) return;
+    window.__vent.setColor(btn.dataset.ral);
+    document.querySelectorAll('.hero__colors button').forEach(b =>
+      b.classList.toggle('is-on', b === btn));
+  });
+});
+
+/* ── Esc закрывает мобильное меню ──────────────────────── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeMenu();
+});
 
 /* ── кнопка «наверх» ───────────────────────────────────── */
 const toTop = document.getElementById('to-top');
