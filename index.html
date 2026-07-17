@@ -13,6 +13,24 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tenor+Sans&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css?v=1">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Vent Line",
+  "url": "https://vent-line.ru",
+  "telephone": "+7 (499) 283-08-65",
+  "email": "info@vent-line.ru",
+  "description": "Производство щелевых вентиляционных решёток скрытого монтажа",
+  "foundingDate": "2011",
+  "address": {
+    "@type": "PostalAddress",
+    "addressRegion": "Московская область",
+    "addressLocality": "Наро-Фоминский городской округ, МПО Котово",
+    "addressCountry": "RU"
+  }
+}
+</script>
 <script type="importmap">
 {
   "imports": {
@@ -23,6 +41,9 @@
 </script>
 </head>
 <body>
+
+<a class="skip-link" href="#montage">К содержанию</a>
+<div class="page-grain" aria-hidden="true"></div>
 
 <!-- ══════════ PRELOADER ══════════ -->
 <div class="preloader" id="preloader" aria-hidden="true">
@@ -104,8 +125,8 @@ setTimeout(function () {
         <li>Производство на заказ — от 5 дней</li>
       </ul>
       <div class="hero__cta" data-reveal>
-        <a class="btn btn--solid" href="mailto:info+322987870@vent-line.ru?subject=%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%20%D0%BD%D0%B0%20%D1%80%D0%B0%D1%81%D1%87%D1%91%D1%82">Отправить проект на расчёт</a>
-        <a class="btn btn--ghost" href="#montage" data-scroll>Смотреть монтаж</a>
+        <a class="btn btn--solid btn--arrow" href="mailto:info+322987870@vent-line.ru?subject=%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%20%D0%BD%D0%B0%20%D1%80%D0%B0%D1%81%D1%87%D1%91%D1%82">Отправить проект на расчёт</a>
+        <a class="btn btn--ghost btn--arrow" href="#montage" data-scroll>Смотреть монтаж</a>
       </div>
     </div>
     <a class="hero__hint" href="#montage" data-scroll aria-label="Листайте вниз">
@@ -315,6 +336,7 @@ setTimeout(function () {
 
 <!-- ══════════ WORKS ══════════ -->
 <section class="section works" id="works">
+  <span class="works__watermark" aria-hidden="true">VENT LINE</span>
   <div class="container">
     <div class="section__head" data-reveal>
       <p class="eyebrow">Работы</p>
@@ -413,6 +435,41 @@ setTimeout(function () {
   </div>
 </section>
 
+<!-- ══════════ FAQ ══════════ -->
+<section class="section faq" id="faq">
+  <div class="container">
+    <div class="faq__grid">
+      <div class="section__head" data-reveal>
+        <p class="eyebrow">Вопросы</p>
+        <h2 class="section__title">Частые<br>вопросы</h2>
+        <p class="section__sub">Не нашли ответ — позвоните, с 9:00 до 18:00 отвечаем живым голосом.</p>
+      </div>
+      <div class="faq__list" data-reveal>
+        <details class="faq__item">
+          <summary>Сколько занимает производство?</summary>
+          <div class="faq__body"><p>От 5 рабочих дней после согласования КП. Подбор, расчёт и техническая документация готовятся быстрее — в течение 1 дня.</p></div>
+        </details>
+        <details class="faq__item">
+          <summary>В какой цвет можно окрасить решётку?</summary>
+          <div class="faq__body"><p>В любой цвет по каталогу RAL. Окраска выполняется на производстве — на объект профиль приезжает уже в финишном цвете, красить его по месту не нужно.</p></div>
+        </details>
+        <details class="faq__item">
+          <summary>Какие размеры возможны?</summary>
+          <div class="faq__body"><p>Каждая решётка изготавливается под параметры проекта: непрерывные линии любой длины, пропускная способность от 25 до 1500 м³/ч.</p></div>
+        </details>
+        <details class="faq__item">
+          <summary>Какие документы я получу?</summary>
+          <div class="faq__body"><p>3D-модели, чертежи, техпаспорт и коммерческое предложение — за 1 день. Инженерное сопровождение на всех этапах проекта.</p></div>
+        </details>
+        <details class="faq__item">
+          <summary>Куда вы поставляете?</summary>
+          <div class="faq__body"><p>По России и СНГ, также работаем с ОАЭ и Таиландом. Для юридических лиц — опт и сопровождение поставок.</p></div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ══════════ CONTACT ══════════ -->
 <section class="section contact" id="contact">
   <div class="container">
@@ -422,7 +479,7 @@ setTimeout(function () {
       <p class="section__sub">Вернём подбор, КП и документацию за 1 день. Звоните с 9:00 до 18:00.</p>
       <div class="contact__actions">
         <a class="contact__phone" href="tel:+74992830865">+7 (499) 283-08-65</a>
-        <a class="btn btn--solid" href="mailto:info+322987870@vent-line.ru?subject=%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%20%D0%BD%D0%B0%20%D1%80%D0%B0%D1%81%D1%87%D1%91%D1%82">Написать на info@vent-line.ru</a>
+        <a class="btn btn--solid btn--arrow" href="mailto:info+322987870@vent-line.ru?subject=%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%20%D0%BD%D0%B0%20%D1%80%D0%B0%D1%81%D1%87%D1%91%D1%82">Написать на info@vent-line.ru</a>
       </div>
     </div>
   </div>
@@ -443,7 +500,8 @@ setTimeout(function () {
       </div>
       <div class="footer__col">
         <h4>Производство</h4>
-        <p>Московская область, Наро-Фоминский городской округ, МПО Котово</p>
+        <p>Московская область, Наро-Фоминский городской округ, МПО Котово<br>
+        <a href="https://yandex.ru/maps/?pt=36.724689,55.351441&z=14" target="_blank" rel="noopener">Показать на карте →</a></p>
         <h4>Офис</h4>
         <p>БП Румянцево, корпус А, подъезд 8, этаж 9, офис 35А</p>
       </div>
@@ -467,6 +525,10 @@ setTimeout(function () {
     </div>
   </div>
 </footer>
+
+<button class="to-top" id="to-top" type="button" aria-label="Наверх">
+  <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M7 12V2M2.5 6.5 7 2l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</button>
 
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>

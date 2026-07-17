@@ -33,11 +33,55 @@ body {
   font-family: var(--font-body);
   font-weight: 400;
   color: var(--ink);
-  background: var(--paper);
+  /* атмосфера hero: бело-серые световые растяжки + чертёжная сетка
+     (видны сквозь прозрачный 3D-канвас, секции ниже накрывают своим фоном) */
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(1100px 720px at 76% 18%, #ECEBE5 0%, rgba(236, 235, 229, 0) 65%),
+    radial-gradient(900px 600px at 8% 92%, #F1F0EA 0%, rgba(241, 240, 234, 0) 60%),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: auto, auto, 132px 132px, 132px 132px;
+  background-position: 0 0, 0 0, -1px -1px, -1px -1px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
   overflow-x: hidden;
 }
+
+/* лёгкое плёночное зерно поверх всей страницы — атмосфера, не шум */
+.page-grain {
+  position: fixed; inset: 0;
+  z-index: 95;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+}
+
+/* ─────────── quality floor ─────────── */
+.skip-link {
+  position: fixed; left: 16px; top: -60px;
+  z-index: 120;
+  padding: 12px 20px;
+  background: var(--ink); color: var(--paper);
+  font-size: 13px; letter-spacing: 0.08em;
+  transition: top 0.3s var(--ease-out);
+}
+.skip-link:focus-visible { top: 16px; }
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+}
+::-webkit-scrollbar { width: 11px; }
+::-webkit-scrollbar-track { background: var(--paper-2); }
+::-webkit-scrollbar-thumb {
+  background: #C9C8C0;
+  border: 3px solid var(--paper-2);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--grey); }
 
 img { max-width: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
@@ -62,6 +106,14 @@ button { font: inherit; background: none; border: none; cursor: pointer; color: 
   letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--grey);
   margin-bottom: 22px;
+  display: flex; align-items: center; gap: 12px;
+}
+/* фирменный знак «двух щелей» перед лейблами секций */
+.eyebrow::before {
+  content: "";
+  width: 22px; height: 7px; flex: none;
+  border-top: 2px solid var(--brass);
+  border-bottom: 2px solid var(--brass);
 }
 .section__title {
   font-family: var(--font-display);
@@ -97,6 +149,12 @@ button { font: inherit; background: none; border: none; cursor: pointer; color: 
 .btn--light { border-color: #fff; background: transparent; color: #fff; }
 .btn--light:hover { background: #fff; color: var(--ink); }
 .btn--sm { padding: 12px 22px; font-size: 12px; }
+.btn--arrow::after {
+  content: "→";
+  margin-left: 12px;
+  transition: transform 0.35s var(--ease-out);
+}
+.btn--arrow:hover::after { transform: translateX(5px); }
 
 /* ─────────── preloader: V-монограмма Vent Line ─────────── */
 .preloader {
@@ -303,6 +361,14 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   height: 100vh;
   overflow: hidden;
 }
+/* мягкая виньетка сцены — глубина кадра */
+.montage__stage::after {
+  content: "";
+  position: absolute; inset: 0;
+  z-index: 2;
+  background: radial-gradient(130% 130% at 50% 46%, rgba(0, 0, 0, 0) 58%, rgba(15, 15, 14, 0.07) 100%);
+  pointer-events: none;
+}
 .montage__photo {
   position: absolute; inset: 0;
   opacity: 0;
@@ -433,7 +499,20 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .section__head { max-width: 760px; margin-bottom: clamp(48px, 6vw, 80px); }
 
 /* ─────────── trust ─────────── */
-.trust { border-top: 1px solid var(--line); }
+.trust {
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, #FDFDFB 0%, var(--paper) 42%);
+}
+.trust__card { transition: background 0.4s; position: relative; }
+.trust__card::before {
+  content: "";
+  position: absolute; top: 0; left: 0;
+  width: 0; height: 2px;
+  background: var(--brass);
+  transition: width 0.5s var(--ease-out);
+}
+.trust__card:hover::before { width: 100%; }
+.trust__card:hover { background: #FFFFFE; }
 .trust__grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
   background: var(--line); border: 1px solid var(--line);
@@ -507,7 +586,16 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 }
 
 /* ─────────── solutions ─────────── */
-.solutions { background: var(--paper-2); }
+.solutions {
+  background: linear-gradient(180deg, #F5F4EF 0%, #ECEBE4 100%);
+}
+.solutions__card {
+  transition: transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out);
+}
+.solutions__card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 24px 48px -26px rgba(19, 19, 17, 0.28);
+}
 .solutions__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
 .solutions__card { background: var(--paper); border: 1px solid var(--line); display: flex; flex-direction: column; }
 .solutions__media { overflow: hidden; aspect-ratio: 4 / 3; }
@@ -531,7 +619,20 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 }
 
 /* ─────────── catalog ─────────── */
+.catalog {
+  background:
+    radial-gradient(1300px 460px at 50% -80px, #F1F0EB 0%, rgba(241, 240, 235, 0) 70%),
+    var(--paper);
+}
 .catalog__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.catalog__card {
+  transition: transform 0.5s var(--ease-out);
+}
+.catalog__card:hover { transform: translateY(-5px); }
+.catalog__card:hover .catalog__media {
+  box-shadow: 0 22px 44px -26px rgba(19, 19, 17, 0.3);
+}
+.catalog__media { transition: box-shadow 0.5s var(--ease-out); }
 .catalog__card { display: flex; flex-direction: column; gap: 12px; }
 .catalog__media {
   overflow: hidden; background: #fff;
@@ -565,7 +666,24 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .catalog__more { margin-top: 60px; text-align: center; }
 
 /* ─────────── works ─────────── */
-.works { background: var(--paper-2); }
+.works {
+  background: linear-gradient(180deg, #F5F4EF 0%, #EDECE5 100%);
+  position: relative;
+  overflow: hidden;
+}
+/* водяной знак — единственное «громкое» украшение секции */
+.works__watermark {
+  position: absolute; top: 34px; right: -20px;
+  font-family: var(--font-display);
+  font-size: clamp(90px, 15vw, 220px);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(19, 19, 17, 0.07);
+  pointer-events: none;
+  user-select: none;
+}
 .works__grid {
   display: grid; grid-template-columns: repeat(3, 1fr);
   gap: 22px;
@@ -609,7 +727,9 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .how__steps p { font-size: 14px; color: var(--grey); }
 
 /* ─────────── quiz ─────────── */
-.quiz { background: var(--paper-2); }
+.quiz {
+  background: linear-gradient(165deg, #F5F4EF 0%, #EBEAE3 100%);
+}
 .quiz__card {
   background: var(--paper);
   border: 1px solid var(--line);
@@ -678,10 +798,62 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 }
 .quiz__back:hover { color: var(--ink); }
 
+/* ─────────── faq ─────────── */
+.faq__grid {
+  display: grid; grid-template-columns: 0.9fr 1.4fr; gap: 60px;
+  align-items: start;
+}
+.faq .section__head { margin-bottom: 0; }
+.faq__list { border-top: 1px solid var(--line); }
+.faq__item { border-bottom: 1px solid var(--line); }
+.faq__item summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 24px 44px 24px 0;
+  font-family: var(--font-display);
+  font-size: clamp(16px, 1.6vw, 20px);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  position: relative;
+  transition: color 0.3s;
+}
+.faq__item summary::-webkit-details-marker { display: none; }
+.faq__item summary::after {
+  content: "";
+  position: absolute; right: 6px; top: 50%;
+  width: 14px; height: 14px;
+  translate: 0 -50%;
+  background:
+    linear-gradient(var(--ink), var(--ink)) center / 14px 1.5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center / 1.5px 14px no-repeat;
+  transition: transform 0.4s var(--ease-out);
+}
+.faq__item[open] summary::after { transform: rotate(45deg); }
+.faq__item summary:hover { color: var(--brass); }
+.faq__body { padding: 0 44px 26px 0; }
+.faq__body p {
+  color: var(--grey); font-size: 15px; max-width: 58ch;
+  animation: faq-in 0.45s var(--ease-out);
+}
+@keyframes faq-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* ─────────── contact ─────────── */
 .contact {
-  background: var(--ink); color: var(--paper);
+  background: linear-gradient(165deg, #1A1A18 0%, #0E0E0D 100%);
+  color: var(--paper);
+  position: relative;
+  overflow: hidden;
 }
+/* тёплое латунное свечение в глубине тёмной секции */
+.contact::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(820px 480px at 50% 118%, rgba(156, 124, 60, 0.17) 0%, rgba(156, 124, 60, 0) 70%);
+  pointer-events: none;
+}
+.contact .container { position: relative; }
 .contact .eyebrow { color: rgba(250,250,247,0.55); }
 .contact .section__sub { color: rgba(250,250,247,0.6); }
 .contact__inner { text-align: center; display: flex; flex-direction: column; align-items: center; }
@@ -701,7 +873,12 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .contact .btn--solid:hover { background: transparent; color: var(--paper); }
 
 /* ─────────── footer ─────────── */
-.footer { background: var(--paper); border-top: 1px solid var(--line); padding: 70px 0 36px; position: relative; z-index: 2; }
+.footer {
+  background: linear-gradient(180deg, #F3F2ED 0%, var(--paper) 46%);
+  border-top: 1px solid var(--line);
+  padding: 70px 0 36px;
+  position: relative; z-index: 2;
+}
 .footer__grid {
   display: grid; grid-template-columns: 1.3fr 1fr 0.8fr 1fr; gap: 44px;
   padding-bottom: 50px;
@@ -730,6 +907,21 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   font-size: 12px; color: var(--grey);
 }
 
+/* ─────────── кнопка «наверх» ─────────── */
+.to-top {
+  position: fixed; right: 26px; bottom: 26px;
+  z-index: 60;
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  opacity: 0; visibility: hidden;
+  transform: translateY(12px);
+  transition: opacity 0.4s, visibility 0.4s, transform 0.4s var(--ease-out), background 0.3s, color 0.3s;
+}
+.to-top.is-visible { opacity: 1; visibility: visible; transform: none; }
+.to-top:hover { background: var(--ink); color: var(--paper); }
+
 /* ─────────── reveal-анимации (JS ставит is-in) ───────────
    Скрываем контент только при работающем JS (html.js) — если скрипты
    не выполнились, страница остаётся полностью читаемой. */
@@ -745,6 +937,8 @@ html:not(.js) .line-in { transform: none; }
   html [data-reveal] { opacity: 1; transform: none; transition: none; }
   html .line-in { transform: none; transition: none; }
   .quiz__options button { animation: none; opacity: 1; }
+  .faq__body p { animation: none; }
+  .solutions__card, .catalog__card, .to-top, .trust__card::before { transition: none; }
   .hero__hint i::after { animation: none; }
   .preloader__word, .preloader__tag, .preloader__mark path { animation: none; }
   .preloader__word, .preloader__tag { opacity: 1; }
@@ -805,6 +999,9 @@ html:not(.has-scene) .montage__final .btn--light:hover { background: var(--ink);
   .trust__grid { grid-template-columns: 1fr; }
   .how__steps { grid-template-columns: 1fr; gap: 30px; }
   .footer__grid { grid-template-columns: 1fr; gap: 30px; }
+  .faq__grid { grid-template-columns: 1fr; gap: 30px; }
+  .works__watermark { top: 14px; font-size: 24vw; }
+  .to-top { right: 16px; bottom: 16px; width: 42px; height: 42px; }
   .trust__logos { gap: 0 40px; padding-right: 40px; }
   .trust__logos img { height: 26px; }
 }

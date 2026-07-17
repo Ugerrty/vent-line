@@ -144,6 +144,26 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
   });
 }
 
+/* ── кнопка «наверх» ───────────────────────────────────── */
+const toTop = document.getElementById('to-top');
+if (toTop) {
+  window.addEventListener('scroll', () => {
+    toTop.classList.toggle('is-visible', (window.scrollY || 0) > window.innerHeight * 1.5);
+  }, { passive: true });
+  toTop.addEventListener('click', () => {
+    if (lenis) lenis.scrollTo(0, { duration: 1.4 });
+    else window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+  });
+}
+
+/* ── FAQ: открытый вопрос закрывает остальные ──────────── */
+const faqItems = document.querySelectorAll('.faq__item');
+faqItems.forEach(item => {
+  item.addEventListener('toggle', () => {
+    if (item.open) faqItems.forEach(other => { if (other !== item) other.open = false; });
+  });
+});
+
 /* ── квиз-подбор: 4 вопроса → готовое письмо ───────────── */
 (function initQuiz() {
   const card = document.querySelector('.quiz__card');
