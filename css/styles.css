@@ -37,11 +37,11 @@ body {
      (видны сквозь прозрачный 3D-канвас, секции ниже накрывают своим фоном) */
   background-color: var(--paper);
   background-image:
-    linear-gradient(180deg, #ECEBE6 0%, rgba(250, 250, 247, 0) 34%),
-    radial-gradient(1100px 720px at 76% 18%, #E9E8E2 0%, rgba(233, 232, 226, 0) 65%),
+    linear-gradient(180deg, #E4E3DC 0%, #EFEEE8 38%, rgba(250, 250, 247, 0) 78%),
+    radial-gradient(1100px 720px at 76% 18%, #E2E1DA 0%, rgba(226, 225, 218, 0) 65%),
     radial-gradient(900px 600px at 8% 92%, #F1F0EA 0%, rgba(241, 240, 234, 0) 60%);
   background-repeat: no-repeat;
-  background-size: 100% 900px, auto, auto;
+  background-size: 100% 120vh, auto, auto;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -89,7 +89,7 @@ button { font: inherit; background: none; border: none; cursor: pointer; color: 
 
 .container { width: var(--w); margin: 0 auto; }
 
-::selection { background: var(--ink); color: var(--paper); }
+::selection { background: var(--brass); color: #fff; }
 
 /* ─────────── мотив «две щели» ─────────── */
 .header__slits {
@@ -162,7 +162,7 @@ button { font: inherit; background: none; border: none; cursor: pointer; color: 
   display: flex; align-items: center; justify-content: center;
   transition: opacity 0.8s var(--ease-out), visibility 0.8s;
 }
-.preloader.is-done { opacity: 0; visibility: hidden; }
+.preloader.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
 .preloader__box { display: flex; flex-direction: column; align-items: center; }
 .preloader__mark {
   width: clamp(64px, 9vw, 96px); height: auto;
@@ -234,7 +234,11 @@ button { font: inherit; background: none; border: none; cursor: pointer; color: 
   display: flex; align-items: center; gap: 40px;
 }
 .header__logo { display: flex; align-items: center; gap: 14px; }
-.header__mark { width: 26px; height: auto; color: var(--ink); flex: none; }
+.header__mark {
+  width: 26px; height: auto; color: var(--ink); flex: none;
+  transition: transform 0.9s var(--ease-out);
+}
+.header__logo:hover .header__mark { transform: rotateY(360deg); }
 .header__wordmark {
   font-family: var(--font-display);
   font-size: 19px; letter-spacing: 0.22em;
@@ -324,6 +328,18 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   text-transform: uppercase;
   letter-spacing: 0.015em;
 }
+/* латунная «щель» прорисовывается под ключевым словом после появления заголовка */
+.hero__hl { position: relative; white-space: nowrap; }
+.hero__hl::after {
+  content: "";
+  position: absolute; left: 0.04em; right: 0.04em; bottom: 0.02em;
+  height: 0.06em;
+  background: var(--brass);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 1s var(--ease-out) 1.15s;
+}
+.is-in .hero__hl::after { transform: scaleX(1); }
+
 .hero__sub {
   margin-top: 30px; max-width: 46ch;
   color: var(--grey); font-weight: 300;
@@ -618,10 +634,42 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .solutions__series {
   margin-top: auto; padding-top: 14px;
   border-top: 1px solid var(--line);
-  font-size: 12px; letter-spacing: 0.08em;
-  color: var(--brass);
-  text-transform: uppercase;
+  display: flex; flex-wrap: wrap; gap: 6px;
 }
+.solutions__series i {
+  font-style: normal;
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--brass);
+  border: 1px solid rgba(156, 124, 60, 0.35);
+  padding: 4px 9px;
+  transition: background 0.25s, color 0.25s;
+}
+.solutions__series i:hover { background: var(--brass); color: #fff; }
+
+/* полоса RAL: окраска в любой цвет каталога */
+.solutions__ral {
+  margin-top: 44px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 18px 26px;
+  padding: 22px 26px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+.solutions__ral-label {
+  font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--grey);
+}
+.solutions__ral-swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.solutions__ral-swatches span {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--grey);
+  font-variant-numeric: tabular-nums;
+}
+.solutions__ral-swatches i {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--line);
+  transition: transform 0.3s var(--ease-out);
+}
+.solutions__ral-swatches span:hover i { transform: scale(1.25); }
 
 /* ─────────── catalog ─────────── */
 .catalog {
@@ -710,7 +758,19 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   color: #fff;
   background: linear-gradient(transparent, rgba(10,10,9,0.52));
   width: 100%;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 14px;
 }
+/* шторка-приглашение: появляется при наведении */
+.works__item figcaption::after {
+  content: "Открыть фото →";
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.35s, transform 0.35s var(--ease-out);
+  white-space: nowrap;
+}
+.works__item:hover figcaption::after { opacity: 1; transform: none; }
 
 /* ─────────── how ─────────── */
 .how__steps {
@@ -752,8 +812,14 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   white-space: nowrap;
 }
 .quiz__bar {
-  flex: 1; height: 2px; background: var(--line);
-  position: relative; overflow: hidden;
+  flex: 1; height: 2px;
+  position: relative; overflow: visible;
+  /* насечки шагов на треке */
+  background:
+    radial-gradient(circle 2.5px, var(--grey) 97%, transparent) 25% 50% / 5px 5px no-repeat,
+    radial-gradient(circle 2.5px, var(--grey) 97%, transparent) 50% 50% / 5px 5px no-repeat,
+    radial-gradient(circle 2.5px, var(--grey) 97%, transparent) 75% 50% / 5px 5px no-repeat,
+    var(--line);
 }
 .quiz__bar i {
   position: absolute; inset: 0;
@@ -919,9 +985,13 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   background: rgba(12, 12, 11, 0.93);
   padding: 4vh 4vw;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.35s var(--ease-out);
 }
-.lightbox.is-open { opacity: 1; }
+/* критично: display:flex не должен перебивать атрибут hidden,
+   иначе невидимый оверлей перехватывает все клики страницы */
+.lightbox[hidden] { display: none !important; }
+.lightbox.is-open { opacity: 1; pointer-events: auto; }
 .lightbox__figure {
   max-width: min(1200px, 84vw); max-height: 88vh;
   display: flex; flex-direction: column; gap: 14px;
@@ -977,6 +1047,30 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 }
 .quiz__chips button::after { content: " ✕"; font-size: 10px; opacity: 0.6; }
 .quiz__chips button:hover { border-color: var(--brass); color: var(--ink); }
+
+/* ─────────── кастомный курсор (включается JS-ом классом has-cursor) ─────────── */
+html.has-cursor * { cursor: none !important; }
+.cursor { position: fixed; inset: 0; z-index: 130; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+.cursor.is-on { opacity: 1; }
+.cursor__dot, .cursor__ring {
+  position: absolute; top: 0; left: 0;
+  border-radius: 50%;
+  translate: -50% -50%;
+}
+.cursor__dot { width: 5px; height: 5px; background: var(--ink); }
+.cursor__ring {
+  width: 30px; height: 30px;
+  border: 1.5px solid var(--brass);
+  transition: width 0.25s var(--ease-out), height 0.25s var(--ease-out), background 0.25s, border-color 0.25s;
+}
+.cursor.is-active .cursor__ring {
+  width: 48px; height: 48px;
+  background: rgba(156, 124, 60, 0.08);
+}
+.cursor.is-press .cursor__ring { width: 22px; height: 22px; }
+
+/* ─────────── московское время в футере ─────────── */
+.footer__time { font-size: 12.5px; color: var(--grey); margin-top: 10px; font-variant-numeric: tabular-nums; }
 
 /* ─────────── кнопка «наверх» ─────────── */
 .to-top {

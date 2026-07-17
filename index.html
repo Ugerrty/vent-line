@@ -117,7 +117,7 @@ setTimeout(function () {
   <div class="hero__inner">
     <div class="hero__text">
       <p class="eyebrow" data-reveal>Собственное производство · с 2011 года</p>
-      <h1 class="hero__title" data-reveal>Вентиляция<br>без визуального<br>шума</h1>
+      <h1 class="hero__title" data-reveal>Вентиляция<br>без визуального<br><span class="hero__hl">шума</span></h1>
       <p class="hero__sub" data-reveal>Щелевые решётки скрытого монтажа для потолка, стен и пола.
         Алюминиевый профиль, окраска в любой цвет RAL, пропускная способность от 25 до 1500 м³/ч.</p>
       <ul class="hero__usp" data-reveal>
@@ -285,6 +285,17 @@ setTimeout(function () {
           <p class="solutions__series">M-PL · ML-PL · PFV</p>
         </div>
       </article>
+    </div>
+    <div class="solutions__ral" data-reveal>
+      <span class="solutions__ral-label">Окраска на производстве</span>
+      <div class="solutions__ral-swatches">
+        <span><i style="background:#F6F6F6"></i>RAL 9016</span>
+        <span><i style="background:#C5C7C4"></i>RAL 7035</span>
+        <span><i style="background:#383E42"></i>RAL 7016</span>
+        <span><i style="background:#45322E"></i>RAL 8017</span>
+        <span><i style="background:#0A0A0D"></i>RAL 9005</span>
+        <span>… и весь каталог RAL Classic</span>
+      </div>
     </div>
   </div>
 </section>
@@ -511,6 +522,7 @@ setTimeout(function () {
         <p><a href="tel:+74992830865">+7 (499) 283-08-65</a><br>
         <a href="mailto:info+322987870@vent-line.ru">info@vent-line.ru</a><br>
         с 9:00 до 18:00</p>
+        <p class="footer__time">В Москве сейчас <span id="msk-time">—:—</span></p>
       </div>
       <div class="footer__col">
         <h4>Документы</h4>
@@ -540,6 +552,8 @@ setTimeout(function () {
   </figure>
   <button class="lightbox__nav lightbox__nav--next" id="lightbox-next" type="button" aria-label="Следующее фото">→</button>
 </div>
+
+<div class="cursor" id="cursor" aria-hidden="true"><i class="cursor__dot"></i><i class="cursor__ring"></i></div>
 
 <button class="to-top" id="to-top" type="button" aria-label="Наверх">
   <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M7 12V2M2.5 6.5 7 2l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>

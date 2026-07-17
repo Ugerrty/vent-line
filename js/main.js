@@ -144,6 +144,63 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
   });
 }
 
+/* ── кастомный курсор: точка + латунное кольцо ─────────── */
+(function initCursor() {
+  const wrap = document.getElementById('cursor');
+  if (!wrap || reduced || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  const dot = wrap.querySelector('.cursor__dot');
+  const ring = wrap.querySelector('.cursor__ring');
+  let x = -100, y = -100, rx = -100, ry = -100, started = false;
+  const INTERACTIVE = 'a, button, summary, input, select, textarea, .works__item';
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    x = e.clientX; y = e.clientY;
+    if (!started) {
+      started = true;
+      rx = x; ry = y;
+      document.documentElement.classList.add('has-cursor');
+      wrap.classList.add('is-on');
+      (function loop() {
+        rx += (x - rx) * 0.18;
+        ry += (y - ry) * 0.18;
+        dot.style.transform = `translate(${x}px, ${y}px)`;
+        ring.style.transform = `translate(${rx}px, ${ry}px)`;
+        requestAnimationFrame(loop);
+      })();
+    }
+    wrap.classList.toggle('is-active', !!e.target.closest(INTERACTIVE));
+  }, { passive: true });
+  document.addEventListener('pointerdown', () => wrap.classList.add('is-press'));
+  document.addEventListener('pointerup', () => wrap.classList.remove('is-press'));
+  document.addEventListener('mouseleave', () => wrap.classList.remove('is-on'));
+  document.addEventListener('mouseenter', () => started && wrap.classList.add('is-on'));
+})();
+
+/* ── серии решёток — интерактивные чипы ────────────────── */
+document.querySelectorAll('.solutions__series').forEach(el => {
+  el.innerHTML = el.textContent.split('·').map(s => `<i>${s.trim()}</i>`).join('');
+});
+
+/* ── живое московское время в футере ───────────────────── */
+(function initMskTime() {
+  const el = document.getElementById('msk-time');
+  if (!el) return;
+  const fmt = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' });
+  const tick = () => { el.textContent = fmt.format(new Date()); };
+  tick();
+  setInterval(tick, 30000);
+})();
+
+/* ── заголовок вкладки, когда пользователь уходит ──────── */
+(function initTitleSwap() {
+  const original = document.title;
+  document.addEventListener('visibilitychange', () => {
+    document.title = document.hidden
+      ? 'Vent Line — вернуться к тишине'
+      : original;
+  });
+})();
+
 /* ── scrollspy: подсветка текущей секции в меню ────────── */
 (function initScrollspy() {
   const links = [...document.querySelectorAll('.header__nav a[href^="#"]')];
