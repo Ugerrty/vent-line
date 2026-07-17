@@ -31,8 +31,12 @@ function init() {
   const stepEls = Array.from(document.querySelectorAll('#montage-steps li'));
 
   /* ── renderer / scene / camera ───────────────────────── */
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  const renderer = new THREE.WebGLRenderer({
+    canvas, alpha: true, antialias: true,
+    powerPreference: 'high-performance'
+  });
+  // 1.25 вместо 1.5: на слабом GPU даёт ~30% меньше пикселей почти без потери чёткости
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.localClippingEnabled = true; // для «прокатки» краски клип-плоскостью
 
@@ -729,6 +733,9 @@ function init() {
   const stagesFx = { paint: 0, drift: 0 }; // прокатка краски и dolly-наезд камеры
   const dimEl = document.getElementById('montage-dim');
   const railEl = document.getElementById('montage-rail');
+  const indexEl = document.getElementById('montage-index');
+  const mw1 = document.getElementById('mw-1');
+  const mw2 = document.getElementById('mw-2');
   let scrollTl = null;
   const TWO_PI = Math.PI * 2;
 
@@ -823,6 +830,10 @@ function init() {
         el.classList.toggle('is-active', i === idx);
         el.classList.toggle('is-done', i < idx);
       });
+      if (indexEl) indexEl.textContent = '0' + (idx + 1);
+      // слова заголовка: «бетона» горит на черновых этапах, «линии» — на финише
+      if (mw1) mw1.classList.toggle('is-lit', idx < 2);
+      if (mw2) mw2.classList.toggle('is-lit', idx >= 2);
       lastStep = idx;
     }
     heroBlend = THREE.MathUtils.clamp(1 - p * 6, 0, 1);
@@ -885,15 +896,19 @@ function init() {
     floatGroup.rotation.z = Math.sin(t * 0.5) * 0.012 * heroBlend;
 
     // тень под моделью в hero: следует за ней, дышит вместе с парением
-    heroShadow.material.opacity = hasMesh ? heroBlend * 0.3 : 0;
+    // тень-«пол» под моделью: лежит на фиксированной высоте, дышит с парением,
+    // тает при отлёте модели (entry-подлёт или старт падения в сцену)
     if (hasMesh && heroBlend > 0.02) {
-      heroShadow.position.set(
-        scrollGroup.position.x - 2,
-        scrollGroup.position.y - 12 + floatGroup.position.y * 0.3,
-        scrollGroup.position.z - 8
-      );
+      const hp = heroPose();
+      const bob = floatGroup.position.y; // ±1.1 от парения
+      heroShadow.position.set(scrollGroup.position.x - 2, hp.py - 12, hp.pz - 8);
       const k = scrollGroup.scale.x / 0.115;
-      heroShadow.scale.setScalar(k * (1 - floatGroup.position.y * 0.03));
+      heroShadow.scale.setScalar(k * (1 + bob * 0.045));
+      const drift = Math.abs(scrollGroup.position.y - hp.py);
+      heroShadow.material.opacity =
+        heroBlend * THREE.MathUtils.clamp(1 - drift / 7, 0, 1) * (0.34 - bob * 0.04);
+    } else {
+      heroShadow.material.opacity = 0;
     }
 
     updateAir(t);

@@ -150,8 +150,26 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
   if (!wrap || reduced || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
   const dot = wrap.querySelector('.cursor__dot');
   const ring = wrap.querySelector('.cursor__ring');
-  let x = -100, y = -100, rx = -100, ry = -100, started = false;
+  let x = -100, y = -100, rx = -100, ry = -100, s = 1, started = false, rafOn = false;
   const INTERACTIVE = 'a, button, summary, input, select, textarea, .works__item';
+  function loop() {
+    rx += (x - rx) * 0.18;
+    ry += (y - ry) * 0.18;
+    const t = wrap.classList.contains('is-press') ? 0.72
+      : wrap.classList.contains('is-active') ? 1.55 : 1;
+    s += (t - s) * 0.2;
+    dot.style.transform = `translate(${x}px, ${y}px)`;
+    ring.style.transform = `translate(${rx}px, ${ry}px) scale(${s.toFixed(3)})`;
+    // цикл засыпает, когда мышь неподвижна и lerp сошёлся — не жжём кадры
+    if (Math.abs(x - rx) + Math.abs(y - ry) < 0.15 && Math.abs(t - s) < 0.004) {
+      rafOn = false;
+      return;
+    }
+    requestAnimationFrame(loop);
+  }
+  function kick() {
+    if (!rafOn) { rafOn = true; requestAnimationFrame(loop); }
+  }
   document.addEventListener('pointermove', e => {
     if (e.pointerType !== 'mouse') return;
     x = e.clientX; y = e.clientY;
@@ -160,18 +178,12 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
       rx = x; ry = y;
       document.documentElement.classList.add('has-cursor');
       wrap.classList.add('is-on');
-      (function loop() {
-        rx += (x - rx) * 0.18;
-        ry += (y - ry) * 0.18;
-        dot.style.transform = `translate(${x}px, ${y}px)`;
-        ring.style.transform = `translate(${rx}px, ${ry}px)`;
-        requestAnimationFrame(loop);
-      })();
     }
     wrap.classList.toggle('is-active', !!e.target.closest(INTERACTIVE));
+    kick();
   }, { passive: true });
-  document.addEventListener('pointerdown', () => wrap.classList.add('is-press'));
-  document.addEventListener('pointerup', () => wrap.classList.remove('is-press'));
+  document.addEventListener('pointerdown', () => { wrap.classList.add('is-press'); kick(); });
+  document.addEventListener('pointerup', () => { wrap.classList.remove('is-press'); kick(); });
   document.addEventListener('mouseleave', () => wrap.classList.remove('is-on'));
   document.addEventListener('mouseenter', () => started && wrap.classList.add('is-on'));
 })();
@@ -180,6 +192,33 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
 document.querySelectorAll('.solutions__series').forEach(el => {
   el.innerHTML = el.textContent.split('·').map(s => `<i>${s.trim()}</i>`).join('');
 });
+
+/* ── лента клиентов: пауза вне экрана ──────────────────── */
+(function initMarqueePause() {
+  const mq = document.querySelector('.trust__marquee');
+  if (!mq || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(([e]) => {
+    mq.classList.toggle('is-off', !e.isIntersecting);
+  }, { rootMargin: '100px 0px' }).observe(mq);
+})();
+
+/* ── копирование e-mail в контактах ────────────────────── */
+(function initCopyEmail() {
+  const btn = document.getElementById('copy-email');
+  if (!btn || !navigator.clipboard) { btn?.remove(); return; }
+  const original = btn.textContent;
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(btn.dataset.email);
+      btn.textContent = 'Скопировано ✓';
+      btn.classList.add('is-copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('is-copied');
+      }, 2200);
+    } catch (e) { /* clipboard недоступен — кнопка просто молчит */ }
+  });
+})();
 
 /* ── живое московское время в футере ───────────────────── */
 (function initMskTime() {
@@ -267,6 +306,18 @@ document.querySelectorAll('.solutions__series').forEach(el => {
   document.getElementById('lightbox-prev').addEventListener('click', () => show(idx - 1));
   document.getElementById('lightbox-next').addEventListener('click', () => show(idx + 1));
   box.addEventListener('click', e => { if (e.target === box) close(); });
+  // свайпы на таче (мультитач/pinch-zoom не считается свайпом)
+  let touchX = null;
+  box.addEventListener('touchstart', e => {
+    touchX = e.touches.length === 1 ? e.touches[0].clientX : null;
+  }, { passive: true });
+  box.addEventListener('touchend', e => {
+    if (touchX === null || e.touches.length > 0) { touchX = null; return; }
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) > 45) show(idx + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+  box.addEventListener('touchcancel', () => { touchX = null; }, { passive: true });
 })();
 
 /* ── лёгкий tilt карточек каталога за курсором ─────────── */
@@ -374,6 +425,25 @@ faqItems.forEach(item => {
   }
   backEl.addEventListener('click', () => { answers.pop(); render(); });
   document.getElementById('quiz-reset').addEventListener('click', () => { answers.length = 0; render(); });
+
+  // выбор ответа клавишами 1–4, когда квиз на экране
+  let quizVisible = false;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(([e]) => { quizVisible = e.isIntersecting; }, { threshold: 0.4 })
+      .observe(card);
+    document.addEventListener('keydown', e => {
+      if (!quizVisible || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (body.hidden) return; // финальный экран — не кликать по скрытым кнопкам
+      if (optionsEl.style.pointerEvents === 'none') return; // тот же 380-мс лок, что и для мыши
+      const tag = (document.activeElement?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 4) {
+        const btn = document.querySelectorAll('#quiz-options button')[n - 1];
+        if (btn) btn.click();
+      }
+    });
+  }
   render();
 })();
 

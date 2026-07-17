@@ -37,11 +37,11 @@ body {
      (видны сквозь прозрачный 3D-канвас, секции ниже накрывают своим фоном) */
   background-color: var(--paper);
   background-image:
-    linear-gradient(180deg, #E4E3DC 0%, #EFEEE8 38%, rgba(250, 250, 247, 0) 78%),
-    radial-gradient(1100px 720px at 76% 18%, #E2E1DA 0%, rgba(226, 225, 218, 0) 65%),
+    linear-gradient(180deg, #D9D8CF 0%, #E9E8E1 34%, rgba(250, 250, 247, 0) 82%),
+    radial-gradient(1100px 720px at 76% 18%, rgba(214, 213, 204, 0.75) 0%, rgba(214, 213, 204, 0) 65%),
     radial-gradient(900px 600px at 8% 92%, #F1F0EA 0%, rgba(241, 240, 234, 0) 60%);
   background-repeat: no-repeat;
-  background-size: 100% 120vh, auto, auto;
+  background-size: 100% 130vh, auto, auto;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -55,8 +55,8 @@ body {
   z-index: 95;
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  opacity: 0.035;
-  mix-blend-mode: multiply;
+  /* без mix-blend-mode: на слабом GPU режимы смешивания на fixed-слое лагают скролл */
+  opacity: 0.05;
 }
 
 /* ─────────── quality floor ─────────── */
@@ -357,20 +357,33 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .hero__cta { margin-top: 44px; display: flex; gap: 16px; flex-wrap: wrap; }
 .hero__hint {
   position: absolute; left: 0; bottom: 40px; z-index: 2;
-  display: flex; align-items: center; gap: 18px;
-  font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 16px;
+}
+.hero__hint span {
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--grey);
-  max-width: 340px;
+  max-width: 250px;
+  line-height: 1.75;
+}
+.hero__hint b {
+  font-weight: 600; color: var(--ink);
+  letter-spacing: 0.16em;
 }
 .hero__hint i {
-  width: 1px; height: 52px; background: var(--ink); position: relative; overflow: hidden; flex: none;
+  width: 1px; height: 46px; background: var(--line); position: relative; overflow: hidden; flex: none;
 }
 .hero__hint i::after {
-  content: ""; position: absolute; left: 0; top: -100%;
+  content: ""; position: absolute; left: 0; top: 0;
   width: 100%; height: 100%; background: var(--brass);
-  animation: hint-drop 2s var(--ease-out) infinite;
+  transform: translateY(-100%);
+  animation: hint-drop 2s var(--ease-out) infinite; /* transform — без reflow */
 }
-@keyframes hint-drop { 0% { top: -100%; } 60% { top: 100%; } 100% { top: 100%; } }
+@keyframes hint-drop {
+  0% { transform: translateY(-100%); }
+  60% { transform: translateY(100%); }
+  100% { transform: translateY(100%); }
+}
 
 /* ─────────── montage ─────────── */
 .montage {
@@ -429,6 +442,23 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   text-transform: uppercase; letter-spacing: 0.02em;
   transition: color 0.5s;
 }
+/* ключевые слова заголовка подсвечиваются по мере этапов */
+.montage__title .mw { font-style: normal; transition: color 0.6s; }
+.montage__title .mw.is-lit { color: var(--brass); }
+/* крупный полупрозрачный номер этапа */
+.montage__index {
+  position: absolute; right: max(4vw, (100vw - 1360px) / 2); top: calc(var(--header-h) + 16px);
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: clamp(80px, 10vw, 150px);
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(19, 19, 17, 0.14);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+.montage.is-merged .montage__index { opacity: 0; }
 .montage__side {
   position: absolute; left: max(4vw, (100vw - 1360px) / 2); bottom: 48px;
   z-index: 3;
@@ -582,6 +612,7 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   animation: marquee 32s linear infinite;
 }
 .trust__marquee:hover .trust__track { animation-play-state: paused; }
+.trust__marquee.is-off .trust__track { animation-play-state: paused; } /* вне экрана — не жжём GPU */
 @keyframes marquee { to { transform: translateX(-50%); } }
 .trust__logos {
   display: flex; align-items: center;
@@ -686,6 +717,19 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .catalog__card:hover { transform: translateY(-5px); }
 .catalog__card:hover .catalog__media {
   box-shadow: 0 22px 44px -26px rgba(19, 19, 17, 0.3);
+}
+/* диагональный отблеск пробегает по карточке при наведении */
+.catalog__media::before {
+  content: "";
+  position: absolute; inset: 0;
+  z-index: 1;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.35) 50%, transparent 68%);
+  transform: translateX(-110%);
+  pointer-events: none;
+}
+.catalog__card:hover .catalog__media::before {
+  transition: transform 0.85s var(--ease-out);
+  transform: translateX(110%);
 }
 .catalog__media { transition: box-shadow 0.5s var(--ease-out), transform 0.2s ease-out; }
 .catalog__card { display: flex; flex-direction: column; gap: 12px; }
@@ -813,6 +857,12 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   color: var(--grey);
   white-space: nowrap;
 }
+.quiz__kbd {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--grey);
+  white-space: nowrap;
+}
+@media (hover: none), (max-width: 760px) { .quiz__kbd { display: none; } }
 .quiz__bar {
   flex: 1; height: 2px;
   position: relative; overflow: visible;
@@ -907,6 +957,19 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   color: var(--grey); font-size: 15px; max-width: 58ch;
   animation: faq-in 0.45s var(--ease-out);
 }
+.faq__call {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 20px; flex-wrap: wrap;
+  padding: 24px 0;
+  font-size: 14px; color: var(--grey);
+  transition: color 0.3s;
+}
+.faq__call b {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 20px; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s;
+}
+.faq__call:hover, .faq__call:hover b { color: var(--brass); }
 @keyframes faq-in {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: none; }
@@ -944,6 +1007,15 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
 .contact__phone:hover { color: var(--brass-2); }
 .contact .btn--solid { background: var(--paper); color: var(--ink); border-color: var(--paper); }
 .contact .btn--solid:hover { background: transparent; color: var(--paper); }
+.contact__copy {
+  font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(250, 250, 247, 0.6);
+  border-bottom: 1px solid rgba(250, 250, 247, 0.3);
+  padding-bottom: 3px;
+  transition: color 0.3s, border-color 0.3s;
+}
+.contact__copy:hover { color: var(--paper); border-color: var(--paper); }
+.contact__copy.is-copied { color: var(--brass-2); border-color: var(--brass-2); }
 
 /* ─────────── footer ─────────── */
 .footer {
@@ -961,7 +1033,9 @@ html.is-dragging { user-select: none; -webkit-user-select: none; }
   font-family: var(--font-display); font-weight: 400;
   font-size: 20px; letter-spacing: 0.22em;
   display: block; margin: 16px 0 10px;
+  transition: letter-spacing 0.7s var(--ease-out);
 }
+.footer__brand:hover b { letter-spacing: 0.4em; }
 .footer__brand p { font-size: 13px; color: var(--grey); max-width: 30ch; }
 .footer__col h4 {
   font-size: 11px; font-weight: 600;
@@ -1063,13 +1137,17 @@ html.has-cursor * { cursor: none !important; }
 .cursor__ring {
   width: 30px; height: 30px;
   border: 1.5px solid var(--brass);
-  transition: width 0.25s var(--ease-out), height 0.25s var(--ease-out), background 0.25s, border-color 0.25s;
+  transition: background 0.25s, border-color 0.25s;
 }
-.cursor.is-active .cursor__ring {
-  width: 48px; height: 48px;
-  background: rgba(156, 124, 60, 0.08);
+.cursor.is-active .cursor__ring { background: rgba(156, 124, 60, 0.08); }
+/* во время вращения модели кольцо показывает «⟷» */
+html.is-dragging .cursor__ring::after {
+  content: "⟷";
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--brass);
 }
-.cursor.is-press .cursor__ring { width: 22px; height: 22px; }
+html.is-dragging .cursor__dot { opacity: 0; }
 
 /* ─────────── московское время в футере ─────────── */
 .footer__time { font-size: 12.5px; color: var(--grey); margin-top: 10px; font-variant-numeric: tabular-nums; }
@@ -1128,6 +1206,7 @@ html:not(.has-scene) .montage__rail { display: none; }
 html:not(.has-scene) .montage__dim { display: none; }
 html:not(.has-scene) .montage__steps li { opacity: 1; }
 html:not(.has-scene) .montage__beam { display: none; }
+html:not(.has-scene) .montage__index { display: none; }
 html:not(.has-scene) .montage__final {
   position: relative; inset: auto;
   opacity: 1; visibility: visible;
