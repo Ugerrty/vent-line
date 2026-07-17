@@ -146,51 +146,6 @@ if (!reduced && window.gsap && window.ScrollTrigger) {
   });
 }
 
-/* ── кастомный курсор: точка + латунное кольцо ─────────── */
-(function initCursor() {
-  const wrap = document.getElementById('cursor');
-  if (!wrap || reduced || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-  const dot = wrap.querySelector('.cursor__dot');
-  const ring = wrap.querySelector('.cursor__ring');
-  let x = -100, y = -100, rx = -100, ry = -100, s = 1, started = false, rafOn = false;
-  const INTERACTIVE = 'a, button, summary, input, select, textarea, .works__item';
-  function loop() {
-    rx += (x - rx) * 0.18;
-    ry += (y - ry) * 0.18;
-    const t = wrap.classList.contains('is-press') ? 0.72
-      : wrap.classList.contains('is-active') ? 1.55 : 1;
-    s += (t - s) * 0.2;
-    dot.style.transform = `translate(${x}px, ${y}px)`;
-    ring.style.transform = `translate(${rx}px, ${ry}px) scale(${s.toFixed(3)})`;
-    // цикл засыпает, когда мышь неподвижна и lerp сошёлся — не жжём кадры
-    if (Math.abs(x - rx) + Math.abs(y - ry) < 0.15 && Math.abs(t - s) < 0.004) {
-      rafOn = false;
-      return;
-    }
-    requestAnimationFrame(loop);
-  }
-  function kick() {
-    if (!rafOn) { rafOn = true; requestAnimationFrame(loop); }
-  }
-  document.addEventListener('pointermove', e => {
-    if (e.pointerType !== 'mouse') return;
-    x = e.clientX; y = e.clientY;
-    if (!started) {
-      started = true;
-      rx = x; ry = y;
-      document.documentElement.classList.add('has-cursor');
-      wrap.classList.add('is-on');
-    }
-    wrap.classList.toggle('is-active', !!e.target.closest(INTERACTIVE));
-    wrap.classList.toggle('is-view', !!e.target.closest('.works__item'));
-    kick();
-  }, { passive: true });
-  document.addEventListener('pointerdown', () => { wrap.classList.add('is-press'); kick(); });
-  document.addEventListener('pointerup', () => { wrap.classList.remove('is-press'); kick(); });
-  document.addEventListener('mouseleave', () => wrap.classList.remove('is-on'));
-  document.addEventListener('mouseenter', () => started && wrap.classList.add('is-on'));
-})();
-
 /* ── серии решёток — интерактивные чипы ────────────────── */
 document.querySelectorAll('.solutions__series').forEach(el => {
   el.innerHTML = el.textContent.split('·').map(s => `<i>${s.trim()}</i>`).join('');

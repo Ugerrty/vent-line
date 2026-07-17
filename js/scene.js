@@ -696,8 +696,8 @@ function init() {
   // помещается по высоте и не заходит на текст слева
   function heroPose() {
     return isNarrow()
-      ? { px: 9, py: -4, pz: 10, rx: 0.05, ry: 0.5, rz: 1.5, s: 0.082 }
-      : { px: 27, py: -1, pz: 14, rx: 0.05, ry: 0.5, rz: 1.5, s: 0.105 };
+      ? { px: 7, py: -4, pz: 10, rx: 0.05, ry: 0.5, rz: 1.5, s: 0.082 }
+      : { px: 23, py: -1, pz: 14, rx: 0.05, ry: 0.5, rz: 1.5, s: 0.105 };
   }
   const seatPose = { px: SEAT.x, py: SEAT.y, pz: -1.4, rx: 0.02, ry: 0, rz: 0, s: 0.155 };
   function applyNarrow() {
@@ -783,31 +783,12 @@ function init() {
     buildScroll();
   });
 
-  /* ── параллакс мыши + drag-вращение (только в hero) ──── */
+  /* ── лёгкий параллакс мыши (только в hero) ───────────── */
   let mx = 0, my = 0, heroBlend = 1;
-  let dragging = false, dragY = 0, dragLastX = 0;
   window.addEventListener('pointermove', e => {
     mx = (e.clientX / window.innerWidth - 0.5) * 2;
     my = (e.clientY / window.innerHeight - 0.5) * 2;
-    if (dragging) {
-      dragY = THREE.MathUtils.clamp(dragY + (e.clientX - dragLastX) * 0.005, -0.9, 0.9);
-      dragLastX = e.clientX;
-    }
   }, { passive: true });
-  window.addEventListener('pointerdown', e => {
-    if (e.pointerType !== 'mouse' || e.button !== 0) return;
-    if ((window.scrollY || 0) > window.innerHeight * 0.7) return; // только в hero
-    if (e.target.closest('a, button, input, select, textarea')) return;
-    dragging = true;
-    dragLastX = e.clientX;
-    document.documentElement.classList.add('is-dragging');
-  });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
-    window.addEventListener(ev, () => {
-      if (!dragging) return;
-      dragging = false;
-      document.documentElement.classList.remove('is-dragging');
-    }));
 
   /* ── scroll-хореография ──────────────────────────────── */
   const merge = { canvas: 1, beam: 0, reveal: 0, photoScale: 1.12, dim: 0 };
@@ -936,20 +917,31 @@ function init() {
     }
   }
 
+  // пишем в DOM только при изменении значений — ноль работы на кадр в статике
+  const mPrev = { c: NaN, r: NaN, s: NaN, b: NaN, d: NaN };
   function applyMergeStyles() {
-    canvas.style.opacity = merge.canvas;
-    if (photoEl) {
+    if (merge.canvas !== mPrev.c) {
+      mPrev.c = merge.canvas;
+      canvas.style.opacity = merge.canvas;
+    }
+    if (photoEl && (merge.reveal !== mPrev.r || merge.photoScale !== mPrev.s)) {
+      mPrev.r = merge.reveal;
+      mPrev.s = merge.photoScale;
       const r = merge.reveal;
       photoEl.style.opacity = r > 0.001 ? 1 : 0;
       photoEl.style.clipPath = `inset(${(1 - r) * 50}% 0 ${(1 - r) * 50}% 0)`;
       photoEl.style.transform = `scale(${merge.photoScale})`;
     }
-    if (beamEl) {
+    if (beamEl && (merge.beam !== mPrev.b || merge.reveal !== mPrev.r)) {
+      mPrev.b = merge.beam;
       // луч гаснет по мере раскрытия щели
       beamEl.style.opacity = merge.beam * Math.max(0, 1 - merge.reveal * 2.5);
       beamEl.style.transform = `translateY(-50%) scaleX(${merge.beam})`;
     }
-    if (dimEl) dimEl.style.opacity = merge.dim;
+    if (dimEl && merge.dim !== mPrev.d) {
+      mPrev.d = merge.dim;
+      dimEl.style.opacity = merge.dim;
+    }
   }
 
   /* ── рендер-цикл ─────────────────────────────────────── */
@@ -1007,10 +999,9 @@ function init() {
 
     const t = clock.getElapsedTime();
     // лёгкое парение + параллакс мыши + drag-вращение, гаснущие в сцене монтажа
-    if (!dragging) dragY *= 0.95; // плавный возврат после отпускания
     floatGroup.position.y = Math.sin(t * 0.8) * 1.1 * heroBlend;
     floatGroup.rotation.x += ((my * 0.05 * heroBlend) - floatGroup.rotation.x) * 0.06;
-    floatGroup.rotation.y += (((mx * 0.09 + dragY) * heroBlend) - floatGroup.rotation.y) * 0.08;
+    floatGroup.rotation.y += ((mx * 0.07 * heroBlend) - floatGroup.rotation.y) * 0.08;
     floatGroup.rotation.z = Math.sin(t * 0.5) * 0.012 * heroBlend;
 
     // тень под моделью в hero: следует за ней, дышит вместе с парением

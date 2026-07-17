@@ -330,11 +330,7 @@ button { font: inherit; background: none; border: none; cursor: pointer; color: 
   position: relative; z-index: 1;
   min-height: 100vh;
   display: flex; align-items: center;
-  cursor: grab;
 }
-.hero a, .hero button { cursor: pointer; }
-html.is-dragging, html.is-dragging .hero { cursor: grabbing; }
-html.is-dragging { user-select: none; -webkit-user-select: none; }
 .hero__inner {
   width: var(--w); margin: 0 auto;
   padding: calc(var(--header-h) + 14px) 0 84px;
@@ -1155,7 +1151,7 @@ html:not(.has-scene) .hero__colors { display: none; }
 
 /* ─────────── печать ─────────── */
 @media print {
-  #scene-canvas, .page-grain, .cursor, .to-top, .header, .menu, .lightbox,
+  #scene-canvas, .page-grain, .to-top, .header, .menu, .lightbox,
   .montage__dim, .montage__beam, .montage__index, .montage__rail,
   .hero__hint, .hero__colors, .skip-link { display: none !important; }
   .montage { height: auto; }
@@ -1236,38 +1232,6 @@ html:not(.has-scene) .hero__colors { display: none; }
 }
 .quiz__chips button::after { content: " ✕"; font-size: 10px; opacity: 0.6; }
 .quiz__chips button:hover { border-color: var(--brass); color: var(--ink); }
-
-/* ─────────── кастомный курсор (включается JS-ом классом has-cursor) ─────────── */
-html.has-cursor * { cursor: none !important; }
-.cursor { position: fixed; inset: 0; z-index: 130; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
-.cursor.is-on { opacity: 1; }
-.cursor__dot, .cursor__ring {
-  position: absolute; top: 0; left: 0;
-  border-radius: 50%;
-  translate: -50% -50%;
-}
-.cursor__dot { width: 5px; height: 5px; background: var(--ink); }
-.cursor__ring {
-  width: 30px; height: 30px;
-  border: 1.5px solid var(--brass);
-  transition: background 0.25s, border-color 0.25s;
-}
-.cursor.is-active .cursor__ring { background: rgba(156, 124, 60, 0.08); }
-/* во время вращения модели кольцо показывает «⟷», над галереей — «фото» */
-html.is-dragging .cursor__ring::after {
-  content: "⟷";
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; color: var(--brass);
-}
-html.is-dragging .cursor__dot { opacity: 0; }
-.cursor.is-view .cursor__ring::after {
-  content: "фото";
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--brass);
-}
 
 /* ─────────── московское время в футере ─────────── */
 .footer__time { font-size: 12.5px; color: var(--grey); margin-top: 10px; font-variant-numeric: tabular-nums; }
