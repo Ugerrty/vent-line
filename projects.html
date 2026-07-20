@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tenor+Sans&family=Onest:wght@300;400;500;600&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=13">
+<link rel="stylesheet" href="css/styles.css?v=14">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__revealsInit)document.documentElement.classList.remove('js')},3000);</script>
 </head>
 <body class="inner">
@@ -71,22 +71,32 @@
 
 <section class="section section--after-hero">
   <div class="container">
+    <div class="cat-bar cat-bar--flush" id="pj-bar">
+      <div class="cat-tabs" id="pj-tabs" role="group" aria-label="Тип поверхности">
+        <span class="cat-tabs__drop" id="pj-drop" aria-hidden="true"></span>
+        <button type="button" class="is-on" data-f="all" aria-pressed="true" aria-label="Все фотографии — 15">Все<i aria-hidden="true">15</i></button>
+        <button type="button" data-f="ceil" aria-pressed="false" aria-label="Потолки — 9 фотографий">Потолки<i aria-hidden="true">9</i></button>
+        <button type="button" data-f="wall" aria-pressed="false" aria-label="Стены — 3 фотографии">Стены<i aria-hidden="true">3</i></button>
+        <button type="button" data-f="floor" aria-pressed="false" aria-label="Пол — 3 фотографии">Пол<i aria-hidden="true">3</i></button>
+      </div>
+    </div>
+    <p class="cat-result" id="pj-result" aria-live="polite">15 фотографий</p>
     <div class="pj-grid">
-      <figure class="works__item" data-reveal><img src="assets/ceiling-1.jpg" alt="Белый потолок с двумя щелевыми решётками" loading="lazy" decoding="async"><figcaption>Потолок · двойная щель</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/product-s1.jpg" alt="Потолок с линиями щелевых решёток над кухней" loading="lazy" decoding="async"><figcaption>Потолок · непрерывные линии</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/wall-3.jpg" alt="Двойная щелевая решётка рядом с мраморной стеной" loading="lazy" decoding="async"><figcaption>Потолок · мрамор и рейки</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/ceiling-3.jpg" alt="Щелевая решётка в потолке кухни-гостиной" loading="lazy" decoding="async"><figcaption>Потолок · кухня-гостиная</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/ceiling-5.jpg" alt="Три щелевые решётки в белой потолочной балке" loading="lazy" decoding="async"><figcaption>Скрытый монтаж в коробе</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/product-v1.jpg" alt="Щелевые решётки у стеклянной перегородки" loading="lazy" decoding="async"><figcaption>Потолок · у перегородки</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/ceiling-2.jpg" alt="Щелевые решётки в потолке с зелёным карнизом" loading="lazy" decoding="async"><figcaption>Потолок · контурный карниз</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/product-m2.jpg" alt="Щелевая решётка в мраморной стене" loading="lazy" decoding="async"><figcaption>Стена · мрамор</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/wall-5.jpg" alt="Перфорированные решётки в светлой кухне" loading="lazy" decoding="async"><figcaption>Перфорированные вставки</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/ceiling-4.jpg" alt="Решётки в интерьере с тонированным стеклом" loading="lazy" decoding="async"><figcaption>Потолок · вечерний интерьер</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/wall-1.jpg" alt="Щелевая решётка в спальне пастельных тонов" loading="lazy" decoding="async"><figcaption>Потолок · спальня</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/floor-3.jpg" alt="Напольная решётка в светлом дубовом паркете" loading="lazy" decoding="async"><figcaption>Пол · светлый дуб</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/floor-2.jpg" alt="Напольная решётка в тёмном паркете" loading="lazy" decoding="async"><figcaption>Пол · тёмный дуб</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/wall-2.jpg" alt="Решётка в каменной отделке душевой" loading="lazy" decoding="async"><figcaption>Стена · камень</figcaption></figure>
-      <figure class="works__item" data-reveal><img src="assets/floor-5.jpg" alt="Напольная решётка в сером камне" loading="lazy" decoding="async"><figcaption>Пол · керамогранит</figcaption></figure>
+      <figure class="works__item pj--wide" data-f="ceil" data-reveal><img src="assets/ceiling-1.jpg" alt="Белый потолок с двумя щелевыми решётками" loading="lazy" decoding="async"><figcaption>Потолок · двойная щель</figcaption></figure>
+      <figure class="works__item pj--wide" data-f="ceil" data-reveal><img src="assets/product-s1.jpg" alt="Потолок с линиями щелевых решёток над кухней" loading="lazy" decoding="async"><figcaption>Потолок · непрерывные линии</figcaption></figure>
+      <figure class="works__item pj--tall" data-f="ceil" data-reveal><img src="assets/wall-3.jpg" alt="Двойная щелевая решётка рядом с мраморной стеной" loading="lazy" decoding="async"><figcaption>Потолок · мрамор и рейки</figcaption></figure>
+      <figure class="works__item pj--tall" data-f="ceil" data-reveal><img src="assets/ceiling-3.jpg" alt="Щелевая решётка в потолке кухни-гостиной" loading="lazy" decoding="async"><figcaption>Потолок · кухня-гостиная</figcaption></figure>
+      <figure class="works__item pj--tall" data-f="ceil" data-reveal><img src="assets/ceiling-5.jpg" alt="Три щелевые решётки в белой потолочной балке" loading="lazy" decoding="async"><figcaption>Скрытый монтаж в коробе</figcaption></figure>
+      <figure class="works__item pj--wide" data-f="ceil" data-reveal><img src="assets/product-v1.jpg" alt="Щелевые решётки у стеклянной перегородки" loading="lazy" decoding="async"><figcaption>Потолок · у перегородки</figcaption></figure>
+      <figure class="works__item pj--tall" data-f="ceil" data-reveal><img src="assets/ceiling-2.jpg" alt="Щелевые решётки в потолке с зелёным карнизом" loading="lazy" decoding="async"><figcaption>Потолок · контурный карниз</figcaption></figure>
+      <figure class="works__item pj--wide" data-f="wall" data-reveal><img src="assets/product-m2.jpg" alt="Щелевая решётка в мраморной стене" loading="lazy" decoding="async"><figcaption>Стена · мрамор</figcaption></figure>
+      <figure class="works__item" data-f="wall" data-reveal><img src="assets/wall-5.jpg" alt="Перфорированные решётки в светлой кухне" loading="lazy" decoding="async"><figcaption>Перфорированные вставки</figcaption></figure>
+      <figure class="works__item pj--tall" data-f="ceil" data-reveal><img src="assets/ceiling-4.jpg" alt="Решётки в интерьере с тонированным стеклом" loading="lazy" decoding="async"><figcaption>Потолок · вечерний интерьер</figcaption></figure>
+      <figure class="works__item pj--wide" data-f="ceil" data-reveal><img src="assets/wall-1.jpg" alt="Щелевая решётка в спальне пастельных тонов" loading="lazy" decoding="async"><figcaption>Потолок · спальня</figcaption></figure>
+      <figure class="works__item" data-f="floor" data-reveal><img src="assets/floor-3.jpg" alt="Напольная решётка в светлом дубовом паркете" loading="lazy" decoding="async"><figcaption>Пол · светлый дуб</figcaption></figure>
+      <figure class="works__item" data-f="floor" data-reveal><img src="assets/floor-2.jpg" alt="Напольная решётка в тёмном паркете" loading="lazy" decoding="async"><figcaption>Пол · тёмный дуб</figcaption></figure>
+      <figure class="works__item" data-f="wall" data-reveal><img src="assets/wall-2.jpg" alt="Решётка в каменной отделке душевой" loading="lazy" decoding="async"><figcaption>Стена · камень</figcaption></figure>
+      <figure class="works__item" data-f="floor" data-reveal><img src="assets/floor-5.jpg" alt="Напольная решётка в сером камне" loading="lazy" decoding="async"><figcaption>Пол · керамогранит</figcaption></figure>
     </div>
   </div>
 </section>
@@ -162,5 +172,71 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
 <script type="module" src="js/main.js?v=7"></script>
+<script>
+(function () {
+  'use strict';
+  var tabs = document.getElementById('pj-tabs');
+  if (!tabs) return;
+  var drop = document.getElementById('pj-drop');
+  var btns = Array.prototype.slice.call(tabs.querySelectorAll('button'));
+  var items = Array.prototype.slice.call(document.querySelectorAll('.pj-grid .works__item'));
+  var result = document.getElementById('pj-result');
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function place(btn) {
+    var x = btn.offsetLeft, w = btn.offsetWidth;
+    var liquid = tabs.classList.contains('is-ready') && !reduced && drop.dataset.x !== undefined;
+    if (liquid && Math.abs(x - +drop.dataset.x) > 1) {
+      var x0 = +drop.dataset.x, w0 = +drop.dataset.w;
+      var lo = Math.min(x0, x);
+      drop.style.width = (Math.max(x0 + w0, x + w) - lo) + 'px';
+      drop.style.transform = 'translateX(' + lo + 'px)';
+      clearTimeout(place._t);
+      place._t = setTimeout(function () {
+        drop.style.width = w + 'px';
+        drop.style.transform = 'translateX(' + x + 'px)';
+      }, 180);
+    } else {
+      drop.style.width = w + 'px';
+      drop.style.transform = 'translateX(' + x + 'px)';
+    }
+    drop.dataset.x = x; drop.dataset.w = w;
+  }
+  function fotoPlural(n) {
+    var d = n % 10, hh = n % 100;
+    return n + ' ' + ((hh >= 11 && hh <= 14) ? 'фотографий' : d === 1 ? 'фотография' : (d >= 2 && d <= 4) ? 'фотографии' : 'фотографий');
+  }
+  function setFilter(key) {
+    btns.forEach(function (b) {
+      var on = b.dataset.f === key;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    place(btns.filter(function (b) { return b.dataset.f === key; })[0] || btns[0]);
+    var shown = 0;
+    items.forEach(function (it) {
+      var off = key !== 'all' && it.dataset.f !== key;
+      it.classList.toggle('is-hidden', off);
+      if (!off) shown++;
+    });
+    result.textContent = fotoPlural(shown);
+  }
+  btns.forEach(function (btn) { btn.addEventListener('click', function () { setFilter(btn.dataset.f); }); });
+  function relayout() {
+    var b = btns.filter(function (x) { return x.classList.contains('is-on'); })[0];
+    if (!b) return;
+    clearTimeout(place._t);
+    tabs.classList.remove('is-ready');
+    drop.style.width = b.offsetWidth + 'px';
+    drop.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+    drop.dataset.x = b.offsetLeft; drop.dataset.w = b.offsetWidth;
+    void drop.offsetWidth;
+    tabs.classList.add('is-ready');
+  }
+  var rz;
+  addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(relayout, 120); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+  requestAnimationFrame(relayout);
+})();
+</script>
 </body>
 </html>

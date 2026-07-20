@@ -1,5 +1,5 @@
-$root = $PSScriptRoot
-$port = 4176
+﻿$root = $PSScriptRoot
+$port = 4177
 
 # try to listen on all interfaces (phones on the same Wi-Fi can connect);
 # falls back to localhost-only if the urlacl reservation is missing

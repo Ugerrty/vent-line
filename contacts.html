@@ -11,8 +11,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tenor+Sans&family=Onest:wght@300;400;500;600&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=13">
+<link rel="stylesheet" href="css/styles.css?v=14">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__revealsInit)document.documentElement.classList.remove('js')},3000);</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Vent Line","url":"https://vent-line.ru","email":"info@vent-line.ru","telephone":"+74992830865","contactPoint":[{"@type":"ContactPoint","telephone":"+74992830865","contactType":"sales","availableLanguage":"ru"},{"@type":"ContactPoint","telephone":"+79950992549","contactType":"sales","availableLanguage":"ru"}],"address":{"@type":"PostalAddress","addressRegion":"Московская область","addressLocality":"Наро-Фоминский городской округ"}}</script>
 </head>
 <body class="inner">
 
@@ -71,38 +72,58 @@
 
 <section class="section section--after-hero">
   <div class="container">
+    <div class="ct-actions" data-reveal>
+      <a href="tel:+74992830865">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>
+        <span><b>Позвонить</b><span>с 9:00 до 18:00, живым голосом</span></span>
+      </a>
+      <a href="mailto:info@vent-line.ru?subject=%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%20%D0%BD%D0%B0%20%D1%80%D0%B0%D1%81%D1%87%D1%91%D1%82">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        <span><b>Написать письмо</b><span>КП и подбор — за 1 рабочий день</span></span>
+      </a>
+      <a href="https://t.me/VentLine1" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 4-18 7.5 5.5 2L10 19l3-3.5 5 3.5z"/><path d="M8.5 13.5 18 6"/></svg>
+        <span><b>Telegram</b><span>@VentLine1 — файлы и чертежи</span></span>
+      </a>
+    </div>
     <div class="contact-grid">
       <div class="contact-list" data-reveal>
         <div>
           <h4>Телефоны</h4>
           <p><a class="big" href="tel:+74992830865">+7 (499) 283-08-65</a><br>
           <a class="big" href="tel:+79950992549">+7 (995) 099-25-49</a></p>
+          <span class="ct-msk">сейчас в Москве — <b id="msk-time"></b></span>
         </div>
         <div>
           <h4>Почта и мессенджеры</h4>
-          <p><a href="mailto:info@vent-line.ru">info@vent-line.ru</a><br>
+          <p><a href="mailto:info@vent-line.ru">info@vent-line.ru</a><button class="ct-copy" id="copy-email" type="button" data-email="info@vent-line.ru">Скопировать</button><br>
           <a href="https://t.me/VentLine1" target="_blank" rel="noopener">Telegram: @VentLine1</a></p>
         </div>
         <div>
           <h4>Производство</h4>
-          <p>Московская область, Наро-Фоминский городской округ, МПО Котово</p>
+          <p>Московская область, Наро-Фоминский городской округ, МПО Котово<br>
+          <a href="https://yandex.ru/maps/?pt=36.724689,55.351441&z=14" target="_blank" rel="noopener">Открыть в Яндекс Картах →</a></p>
         </div>
         <div>
           <h4>Офис</h4>
           <p>БП Румянцево, корпус А, подъезд 8, этаж 9, офис 35А</p>
-        </div>
-        <div>
-          <h4>Реквизиты</h4>
-          <p>ИП Спиридонов Генрик Грайрович<br>ИНН 772994390219 · ОГРНИП 321774600154540</p>
         </div>
       </div>
       <div class="contact-map" data-reveal>
         <iframe src="https://yandex.ru/map-widget/v1/?pt=36.724689,55.351441&z=13&l=map" title="Производство Vent Line на карте" loading="lazy" allowfullscreen></iframe>
       </div>
     </div>
+    <div class="contact-spec" data-reveal>
+      <p class="eyebrow">Реквизиты</p>
+      <dl class="about-spec">
+        <div><dt>Компания</dt><dd>ИП Спиридонов Генрик Грайрович</dd></div>
+        <div><dt>ИНН</dt><dd>772994390219</dd></div>
+        <div><dt>ОГРНИП</dt><dd>321774600154540</dd></div>
+        <div><dt>Режим работы</dt><dd>с 9:00 до 18:00</dd></div>
+      </dl>
+    </div>
   </div>
 </section>
-
 <section class="section page-cta">
   <div class="container" data-reveal>
     <p class="eyebrow" style="justify-content: center;">Расчёт</p>
