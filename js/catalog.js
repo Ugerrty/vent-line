@@ -16,6 +16,7 @@
   const NBSP = ' ';
   let cur = 'all';
   let searchT;
+  let spy = null;
 
   function plural(n) {
     const d = n % 10, h = n % 100;
@@ -78,7 +79,8 @@
     clearTimeout(searchT);
     cur = key;
     const btn = btns.find(b => b.dataset.s === key) || btns[0];
-    if (key !== 'all') btns.forEach(b => b.classList.remove('is-near'));
+    btns.forEach(b => b.classList.remove('is-near'));
+    if (key === 'all' && spy) secs.forEach(s => { spy.unobserve(s); spy.observe(s); });
     markActive(btn);
     if (search.value) search.value = '';
     empty.hidden = true;
@@ -113,6 +115,7 @@
     searchT = setTimeout(applySearch, 200);
   });
   function applySearch() {
+    btns.forEach(b => b.classList.remove('is-near'));
     const q = norm(search.value.trim());
     if (!q) { setSeries('all'); return; }
     if (cur !== 'all') {
@@ -204,11 +207,13 @@
   }
   addEventListener('hashchange', () => fromHash(true));
 
-  /* ── «/» фокусирует поиск ── */
+  /* ── «/» фокусирует поиск (только пока бар на экране) ── */
   addEventListener('keydown', e => {
-    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!(e.key === '/' || (e.code === 'Slash' && !e.shiftKey)) || e.ctrlKey || e.metaKey || e.altKey) return;
     const a = document.activeElement;
     if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
+    const br = bar.getBoundingClientRect();
+    if (br.bottom < 0 || br.top > innerHeight) return;
     e.preventDefault();
     search.focus();
   });
@@ -217,8 +222,11 @@
   tabs.addEventListener('wheel', e => {
     if (tabs.scrollWidth <= tabs.clientWidth) return;
     if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const d = e.deltaY * (e.deltaMode === 1 ? 24 : 1);
+    const max = tabs.scrollWidth - tabs.clientWidth;
+    if ((d < 0 && tabs.scrollLeft <= 0) || (d > 0 && tabs.scrollLeft >= max - 1)) return;
     e.preventDefault();
-    tabs.scrollLeft += e.deltaY;
+    tabs.scrollLeft += d;
   }, { passive: false });
 
   /* ── тост ── */
@@ -226,21 +234,39 @@
   let toastT;
   function showToast(text) {
     if (!toast) return;
+    toast.textContent = '';
     toast.textContent = text;
     toast.classList.add('is-on');
     clearTimeout(toastT);
-    toastT = setTimeout(() => toast.classList.remove('is-on'), 1900);
+    toastT = setTimeout(() => {
+      toast.classList.remove('is-on');
+      setTimeout(() => { if (!toast.classList.contains('is-on')) toast.textContent = ''; }, 350);
+    }, 1900);
   }
 
   /* ── копирование ссылки на серию ── */
+  function legacyCopy(url) {
+    const ta = document.createElement('textarea');
+    ta.style.cssText = 'position:fixed;left:-999px;top:0;opacity:0';
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    if (ok) showToast('Ссылка на серию скопирована');
+    else window.prompt('Скопируйте ссылку:', url);
+  }
   document.querySelectorAll('.cat-sec__link').forEach(btn => {
     btn.addEventListener('click', () => {
       const url = location.origin + location.pathname + '#' + btn.dataset.link;
-      const done = () => showToast('Ссылка на серию скопирована');
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(done, () => showToast(url));
+        navigator.clipboard.writeText(url).then(
+          () => showToast('Ссылка на серию скопирована'),
+          () => legacyCopy(url)
+        );
       } else {
-        showToast(url);
+        legacyCopy(url);
       }
     });
   });
@@ -262,7 +288,7 @@
 
   /* ── латунная точка: серия, видимая на экране (в режиме «Все») ── */
   if ('IntersectionObserver' in window) {
-    const spy = new IntersectionObserver(entries => {
+    spy = new IntersectionObserver(entries => {
       if (cur !== 'all' || search.value) return;
       entries.forEach(en => {
         const btn = btns.find(b => b.dataset.s === en.target.dataset.series);
@@ -273,10 +299,18 @@
   }
 
   /* ── подсказка «возможно, вы искали» в пустой выдаче ── */
-  const NAMES = cards.map(c => {
+  const CAND = [];
+  cards.forEach(c => {
     const h3 = c.querySelector('h3');
-    return h3 ? h3.textContent.trim() : '';
-  }).filter(Boolean);
+    const label = h3 ? h3.textContent.trim() : '';
+    if (!label) return;
+    CAND.push({ alias: norm(label), label });
+    const toks = norm(c.dataset.name || '').split(/\s+/).filter(Boolean);
+    toks.forEach((a, i) => {
+      CAND.push({ alias: a, label });
+      if (i < toks.length - 1) CAND.push({ alias: a + ' ' + toks[i + 1], label });
+    });
+  });
   function editDist(a, b) {
     const m = a.length, n = b.length;
     if (Math.abs(m - n) > 3) return 9;
@@ -292,10 +326,12 @@
     return row[n];
   }
   function suggestFor(q) {
-    let best = null, bestD = 3;
-    NAMES.forEach(name => {
-      const d = editDist(q.toLowerCase(), name.toLowerCase());
-      if (d < bestD || (d === bestD && !best)) { bestD = d; best = name; }
+    const nq = norm(q);
+    const maxD = Math.max(1, Math.min(3, Math.ceil(nq.length / 3)));
+    let best = null, bestD = maxD + 1;
+    CAND.forEach(cand => {
+      const d = editDist(nq, cand.alias);
+      if (d < bestD) { bestD = d; best = cand.label; }
     });
     return best;
   }
