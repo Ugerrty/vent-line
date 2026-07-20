@@ -78,6 +78,7 @@
     clearTimeout(searchT);
     cur = key;
     const btn = btns.find(b => b.dataset.s === key) || btns[0];
+    if (key !== 'all') btns.forEach(b => b.classList.remove('is-near'));
     markActive(btn);
     if (search.value) search.value = '';
     empty.hidden = true;
@@ -202,6 +203,121 @@
     }
   }
   addEventListener('hashchange', () => fromHash(true));
+
+  /* ── «/» фокусирует поиск ── */
+  addEventListener('keydown', e => {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    const a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
+    e.preventDefault();
+    search.focus();
+  });
+
+  /* ── колесо мыши листает табы горизонтально ── */
+  tabs.addEventListener('wheel', e => {
+    if (tabs.scrollWidth <= tabs.clientWidth) return;
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    tabs.scrollLeft += e.deltaY;
+  }, { passive: false });
+
+  /* ── тост ── */
+  const toast = document.getElementById('toast');
+  let toastT;
+  function showToast(text) {
+    if (!toast) return;
+    toast.textContent = text;
+    toast.classList.add('is-on');
+    clearTimeout(toastT);
+    toastT = setTimeout(() => toast.classList.remove('is-on'), 1900);
+  }
+
+  /* ── копирование ссылки на серию ── */
+  document.querySelectorAll('.cat-sec__link').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = location.origin + location.pathname + '#' + btn.dataset.link;
+      const done = () => showToast('Ссылка на серию скопирована');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done, () => showToast(url));
+      } else {
+        showToast(url);
+      }
+    });
+  });
+
+  /* ── повторная волна ламелей при наведении на заголовок серии ── */
+  if (!reduced) {
+    document.querySelectorAll('.cat-sec__head').forEach(head => {
+      let waveLock = 0;
+      head.addEventListener('mouseenter', () => {
+        const now = Date.now();
+        if (now - waveLock < 1600 || !head.classList.contains('is-in')) return;
+        waveLock = now;
+        head.classList.add('wave');
+        void head.offsetWidth;
+        head.classList.remove('wave');
+      });
+    });
+  }
+
+  /* ── латунная точка: серия, видимая на экране (в режиме «Все») ── */
+  if ('IntersectionObserver' in window) {
+    const spy = new IntersectionObserver(entries => {
+      if (cur !== 'all' || search.value) return;
+      entries.forEach(en => {
+        const btn = btns.find(b => b.dataset.s === en.target.dataset.series);
+        if (btn) btn.classList.toggle('is-near', en.isIntersecting);
+      });
+    }, { rootMargin: '-30% 0px -55% 0px' });
+    secs.forEach(sec => spy.observe(sec));
+  }
+
+  /* ── подсказка «возможно, вы искали» в пустой выдаче ── */
+  const NAMES = cards.map(c => {
+    const h3 = c.querySelector('h3');
+    return h3 ? h3.textContent.trim() : '';
+  }).filter(Boolean);
+  function editDist(a, b) {
+    const m = a.length, n = b.length;
+    if (Math.abs(m - n) > 3) return 9;
+    const row = Array.from({ length: n + 1 }, (_, i) => i);
+    for (let i = 1; i <= m; i++) {
+      let prev = row[0]; row[0] = i;
+      for (let j = 1; j <= n; j++) {
+        const t = row[j];
+        row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+        prev = t;
+      }
+    }
+    return row[n];
+  }
+  function suggestFor(q) {
+    let best = null, bestD = 3;
+    NAMES.forEach(name => {
+      const d = editDist(q.toLowerCase(), name.toLowerCase());
+      if (d < bestD || (d === bestD && !best)) { bestD = d; best = name; }
+    });
+    return best;
+  }
+  const emptyBtn = document.getElementById('cat-suggest');
+  function updateSuggest(q) {
+    if (!emptyBtn) return;
+    const s = suggestFor(q);
+    emptyBtn.hidden = !s;
+    if (s) {
+      emptyBtn.textContent = 'Возможно, вы искали: ' + s;
+      emptyBtn.dataset.q = s;
+    }
+  }
+  if (emptyBtn) emptyBtn.addEventListener('click', () => {
+    search.value = emptyBtn.dataset.q || '';
+    applySearch();
+  });
+  const _applySearch = applySearch;
+  applySearch = function () {
+    _applySearch();
+    if (!empty.hidden) updateSuggest(search.value.trim());
+  };
 
   fromHash(true);
   requestAnimationFrame(relayout);
