@@ -1252,9 +1252,10 @@ html:not(.has-scene) .hero__colors { display: none; }
 
 /* каталог: стеклянная панель с латунной каплей */
 .cat-bar {
-  position: sticky; top: calc(var(--header-h) + 16px); z-index: 40;
-  scroll-margin-top: calc(var(--header-h) + 16px);
+  position: sticky; top: calc(var(--header-h) + 20px); z-index: 40;
+  scroll-margin-top: calc(var(--header-h) + 20px);
   display: flex; align-items: center; gap: 4px;
+  margin-top: clamp(32px, 4.5vw, 54px);
   padding: 6px;
   background: rgba(254, 253, 249, 0.86);
   -webkit-backdrop-filter: blur(8px) saturate(1.15);
@@ -1457,6 +1458,29 @@ html:not(.has-scene) .hero__colors { display: none; }
   transition: transform 0.6s var(--ease-out);
 }
 .cat-card:hover .cat-card__media img { transform: scale(1.08); }
+/* диагональный отблеск + плашка снизу — как на главной в «рекомендуемых» */
+.cat-card__media::before {
+  content: ""; position: absolute; inset: 0; z-index: 2;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.35) 50%, transparent 68%);
+  transform: translateX(-110%);
+  pointer-events: none;
+}
+.cat-card:hover .cat-card__media::before {
+  transition: transform 0.85s var(--ease-out);
+  transform: translateX(110%);
+}
+.cat-card__media::after {
+  content: "Открыть модель →";
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  padding: 11px 14px;
+  font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  background: rgba(19, 19, 17, 0.86);
+  color: var(--paper);
+  transform: translateY(100%);
+  transition: transform 0.4s var(--ease-out);
+  pointer-events: none;
+}
+.cat-card:hover .cat-card__media::after { transform: none; }
 .cat-card__tag {
   position: absolute; top: 10px; left: 10px; z-index: 1;
   font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -1539,6 +1563,8 @@ html:not(.has-scene) .hero__colors { display: none; }
   .cat-tabs.is-ready .cat-tabs__drop { transition: opacity 0.3s; }
   .cat-card.pop { animation: none; }
   .cat-sec__mark .slat { transition: none; transform: none; }
+  .cat-card__media::before { display: none; }
+  .cat-card__media::after { transition: none; }
 }
 html:not(.js) .cat-bar,
 html:not(.js) .cat-result { display: none; }
