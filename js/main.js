@@ -186,12 +186,14 @@ document.querySelectorAll('.solutions__series').forEach(el => {
   const btn = document.getElementById('copy-email');
   if (!btn || !navigator.clipboard) { btn?.remove(); return; }
   const original = btn.textContent;
+  let backT;
   btn.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(btn.dataset.email);
       btn.textContent = 'Скопировано ✓';
       btn.classList.add('is-copied');
-      setTimeout(() => {
+      clearTimeout(backT);
+      backT = setTimeout(() => {
         btn.textContent = original;
         btn.classList.remove('is-copied');
       }, 2200);
@@ -249,17 +251,27 @@ document.querySelectorAll('.solutions__series').forEach(el => {
   const count = document.getElementById('lightbox-count');
   const closeBtn = document.getElementById('lightbox-close');
   let idx = 0;
+  let hideT;
+  let lastFocus = null;
 
+  // фильтры на странице проектов прячут часть фигур — листаем только видимые
+  function live() {
+    const v = items.filter(el => !el.classList.contains('is-hidden'));
+    return v.length ? v : items;
+  }
   function show(i) {
-    idx = (i + items.length) % items.length;
-    const src = items[idx].querySelector('img');
+    const list = live();
+    idx = (i + list.length) % list.length;
+    const src = list[idx].querySelector('img');
     img.src = src.src;
     img.alt = src.alt;
-    cap.textContent = items[idx].querySelector('figcaption')?.textContent || '';
-    count.textContent = `${idx + 1} / ${items.length}`;
+    cap.textContent = list[idx].querySelector('figcaption')?.textContent || '';
+    count.textContent = `${idx + 1} / ${list.length}`;
   }
   function open(i) {
+    lastFocus = document.activeElement;
     show(i);
+    clearTimeout(hideT);
     box.hidden = false;
     void box.offsetWidth; // reflow, чтобы transition сработал
     box.classList.add('is-open');
@@ -273,14 +285,35 @@ document.querySelectorAll('.solutions__series').forEach(el => {
     document.removeEventListener('keydown', onKey);
     document.body.style.overflow = '';
     if (lenis) lenis.start();
-    setTimeout(() => { box.hidden = true; }, 350);
+    hideT = setTimeout(() => { box.hidden = true; }, 350);
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
   function onKey(e) {
     if (e.key === 'Escape') close();
     if (e.key === 'ArrowLeft') show(idx - 1);
     if (e.key === 'ArrowRight') show(idx + 1);
+    if (e.key === 'Tab') {
+      // фокус не покидает диалог
+      const f = [...box.querySelectorAll('button')].filter(b => b.offsetParent);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (!box.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    }
   }
-  items.forEach((item, i) => item.addEventListener('click', () => open(i)));
+  items.forEach(item => {
+    const openThis = () => open(live().indexOf(item));
+    item.addEventListener('click', openThis);
+    // доступ с клавиатуры
+    item.tabIndex = 0;
+    item.setAttribute('role', 'button');
+    const capText = item.querySelector('figcaption');
+    item.setAttribute('aria-label', 'Открыть фото: ' + (capText ? capText.textContent : 'проект'));
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openThis(); }
+    });
+  });
   closeBtn.addEventListener('click', close);
   document.getElementById('lightbox-prev').addEventListener('click', () => show(idx - 1));
   document.getElementById('lightbox-next').addEventListener('click', () => show(idx + 1));
@@ -341,11 +374,15 @@ if (toTop) {
   });
 }
 
-/* ── FAQ: открытый вопрос закрывает остальные ──────────── */
+/* ── FAQ: открытый вопрос закрывает остальные ────────────
+   реагируем на клик по summary, а не на toggle: программное
+   «Развернуть все» на странице покупателям не должно схлопываться */
 const faqItems = document.querySelectorAll('.faq__item');
 faqItems.forEach(item => {
-  item.addEventListener('toggle', () => {
-    if (item.open) faqItems.forEach(other => { if (other !== item) other.open = false; });
+  const s = item.querySelector('summary');
+  if (!s) return;
+  s.addEventListener('click', () => {
+    if (!item.open) faqItems.forEach(other => { if (other !== item) other.open = false; });
   });
 });
 

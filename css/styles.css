@@ -928,10 +928,11 @@ html:not(.has-scene) .hero__colors { display: none; }
 }
 .works__item figcaption {
   position: absolute; left: 0; bottom: 0;
-  padding: 14px 18px;
+  padding: 20px 18px 14px;
   font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
   color: #fff;
-  background: linear-gradient(transparent, rgba(10,10,9,0.52));
+  text-shadow: 0 1px 2px rgba(10, 10, 9, 0.55);
+  background: linear-gradient(transparent, rgba(10, 10, 9, 0.42) 40%, rgba(10, 10, 9, 0.74));
   width: 100%;
   display: flex; justify-content: space-between; align-items: baseline; gap: 14px;
 }
@@ -1834,7 +1835,10 @@ body.inner { background-size: 100% 560px, auto, auto; }
   .cat-card__media::after { transition: none; }
 }
 html:not(.js) .cat-bar,
-html:not(.js) .cat-result { display: none; }
+html:not(.js) .cat-result,
+html:not(.js) .ct-copy,
+html:not(.js) .ct-msk,
+html:not(.js) .js-only { display: none; }
 html:not(.js) .cat-sec__mark .slat { transform: none; }
 html:not(.js) .page-hero__stats b::after { transform: scaleX(1); }
 .sr-only {
@@ -1879,10 +1883,13 @@ html:not(.js) .page-hero__stats b::after { transform: scaleX(1); }
 .pj-grid .works__item { counter-increment: pj; }
 .pj-grid figcaption::before {
   content: counter(pj, decimal-leading-zero) " · ";
-  color: var(--brass-2, #C9A25C);
+  color: #EAD096;
 }
 .pj--wide { grid-column: span 2; }
 .pj--tall { grid-row: span 2; }
+.pj-grid .works__item img { filter: saturate(0.94); }
+.pj-grid .works__item:hover img,
+.pj-grid .works__item:focus-visible img { filter: none; }
 .cat-bar--flush { margin-top: 0; }
 
 /* покупателям */
@@ -1930,7 +1937,7 @@ html:not(.js) .page-hero__stats b::after { transform: scaleX(1); }
   box-shadow: 0 22px 40px -24px rgba(19, 19, 17, 0.2), 0 6px 14px -8px rgba(156, 124, 60, 0.13);
 }
 .ct-actions svg { width: 22px; height: 22px; flex: none; color: var(--brass); }
-.ct-actions b { display: block; font-weight: 500; font-size: 14.5px; }
+.ct-actions b { display: block; font-weight: 500; font-size: 14.5px; color: var(--ink); }
 .ct-actions span { display: block; font-size: 12px; color: var(--grey); margin-top: 1px; }
 .ct-copy {
   margin-left: 10px;
@@ -1939,8 +1946,9 @@ html:not(.js) .page-hero__stats b::after { transform: scaleX(1); }
   border-bottom: 1px dashed var(--line);
   transition: color 0.25s, border-color 0.25s;
 }
-.ct-copy:hover { color: var(--brass); border-color: var(--brass); }
-.ct-copy.is-copied { color: var(--brass); border-color: transparent; }
+.ct-copy { border-bottom-color: rgba(111, 111, 103, 0.55); }
+.ct-copy:hover { color: #8A6C30; border-color: #8A6C30; }
+.ct-copy.is-copied { color: #8A6C30; border-color: transparent; }
 .ct-msk {
   display: inline-flex; align-items: center; gap: 8px;
   margin-top: 14px;
@@ -1998,8 +2006,8 @@ html:not(.js) .page-hero__stats b::after { transform: scaleX(1); }
   white-space: nowrap;
   transition: color 0.25s;
 }
-.faq-expand:hover { color: var(--brass); }
-@media (max-width: 700px) { .faq-expand { display: none; } }
+.faq-expand:hover { color: #8A6C30; }
+@media (max-width: 760px) { .faq-expand { display: none; } }
 .contact-map iframe { width: 100%; height: 100%; border: 0; display: block; }
 
 /* CTA-полоса внизу страниц */
@@ -2017,6 +2025,7 @@ html:not(.js) .page-hero__stats b::after { transform: scaleX(1); }
   .facts { grid-template-columns: repeat(2, 1fr); }
   .info-cols { grid-template-columns: 1fr; }
   .pj-grid { grid-template-columns: repeat(2, 1fr); }
+  .pj--wide { grid-column: span 1; }
 }
 @media (max-width: 760px) {
   .cat-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -2048,6 +2057,9 @@ html:not(.js) .page-hero__stats b::after { transform: scaleX(1); }
   .cat-sec__mark .slat { transform: none !important; }
   .cat-sec.is-off { display: block !important; }
   .cat-card.is-hidden { display: flex !important; }
+  .faq-sec.is-off { display: block !important; }
+  .faq__item.is-hidden { display: block !important; }
+  .pj-grid .works__item.is-hidden { display: block !important; }
   .montage { height: auto; }
   .montage__stage { position: relative; height: auto; }
   .montage__photo { opacity: 1; transform: none; position: relative; height: 420px; }
