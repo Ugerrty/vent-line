@@ -1229,6 +1229,10 @@ html:not(.has-scene) .hero__colors { display: none; }
     linear-gradient(180deg, #E9E8E1 0%, rgba(254, 253, 249, 0) 90%);
 }
 .page-hero .section__title { max-width: 900px; }
+/* внутренние страницы: молочный градиент гаснет ВНУТРИ hero,
+   ниже — чистая бумага (иначе кромка тона упирается в бар серий) */
+body.inner { background-size: 100% 560px, auto, auto; }
+
 /* каталог: статистика в hero */
 .page-hero__stats {
   display: flex; gap: clamp(24px, 4vw, 46px); flex-wrap: wrap;
@@ -1255,7 +1259,7 @@ html:not(.has-scene) .hero__colors { display: none; }
   position: sticky; top: calc(var(--header-h) + 20px); z-index: 40;
   scroll-margin-top: calc(var(--header-h) + 20px);
   display: flex; align-items: center; gap: 4px;
-  margin-top: clamp(32px, 4.5vw, 54px);
+  margin-top: clamp(48px, 6vw, 78px);
   padding: 6px;
   background: rgba(254, 253, 249, 0.86);
   -webkit-backdrop-filter: blur(8px) saturate(1.15);
