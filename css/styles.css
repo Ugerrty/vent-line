@@ -1232,6 +1232,8 @@ html:not(.has-scene) .hero__colors { display: none; }
 /* внутренние страницы: молочный градиент гаснет ВНУТРИ hero,
    ниже — чистая бумага (иначе кромка тона упирается в бар серий) */
 body.inner { background-size: 100% 560px, auto, auto; }
+/* первый блок после hero — единый воздух на всех внутренних страницах */
+.section--after-hero { padding-top: clamp(46px, 6vw, 74px); }
 
 /* каталог: статистика в hero */
 .page-hero__stats {
