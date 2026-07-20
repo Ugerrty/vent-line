@@ -1,0 +1,3 @@
+﻿User-agent: *
+Allow: /
+Sitemap: https://ugerrty.github.io/vent-line/sitemap.xml

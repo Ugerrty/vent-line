@@ -28,7 +28,8 @@ function hidePreloader() {
   initReveals(); // reveal-анимации стартуют, когда прелоадер ушёл
 }
 if (window.__sceneReady) setTimeout(hidePreloader, 250);
-else document.addEventListener('scene-ready', () => setTimeout(hidePreloader, 250));
+else if (!preloader) setTimeout(() => initReveals(), 60); // внутренние страницы — без прелоадера
+document.addEventListener('scene-ready', () => setTimeout(hidePreloader, 250));
 window.addEventListener('load', () => setTimeout(hidePreloader, 2600)); // страховка
 setTimeout(hidePreloader, 6000); // вторая страховка (есть и инлайновая в index.html)
 
@@ -115,6 +116,7 @@ let revealsInited = false;
 function initReveals() {
   if (revealsInited) return;
   revealsInited = true;
+  window.__revealsInit = true;
   const revealEls = document.querySelectorAll('[data-reveal]');
   if (reduced || !('IntersectionObserver' in window)) {
     revealEls.forEach(el => el.classList.add('is-in'));
